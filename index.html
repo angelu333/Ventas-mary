@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ventas Mary</title>
+    <style>
+        /* Fuentes personalizadas */
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@400;600&display=swap');
+
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            padding: 20px; 
+            background-color: #FFF0F5; 
+            margin: 0; 
+            color: #333;
+            background-image: url('https://www.transparenttextures.com/patterns/soft-circle-scales.png'); /* Textura de fondo */
+        }
+        .container { 
+            max-width: 500px; 
+            margin: auto; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            background: linear-gradient(to bottom right, #FFFFFF, #FFE4E1);
+            position: relative;
+            overflow: hidden;
+        }
+        h2 { 
+            text-align: center; 
+            color: #8B4513; 
+            font-family: 'Dancing Script', cursive;
+            font-size: 3rem;
+            margin: 0;
+            padding: 20px 0;
+            position: relative;
+            z-index: 2;
+        }
+        h2::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120%;
+            height: 120%;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            z-index: -1;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        input, button { 
+            width: 100%; 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            border: 1px solid #FFB6C1;
+        }
+        button { 
+            background-color: #FF69B4; 
+            color: white; 
+            border: none; 
+            transition: background-color 0.3s ease;
+        }
+        button:hover { 
+            background-color: #FF1493; 
+        }
+
+        .menu-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background-color: #FF69B4;
+            border-radius: 50%;
+            color: white;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 250px;
+            background: linear-gradient(to bottom, #FF69B4, #8B008B);
+            padding: 20px;
+            box-shadow: -2px 0 5px rgba(0,0,0,0.1);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            z-index: 999;
+            color: white;
+        }
+
+        .sidebar.open { transform: translateX(0); }
+        .sidebar h3 { 
+            color: white; 
+            font-family: 'Georgia', serif;
+            text-align: center;
+        }
+        .sidebar ul { 
+            list-style: none; 
+            padding: 0; 
+        }
+        .sidebar ul li { 
+            margin: 15px 0; 
+            text-align: center;
+        }
+        .sidebar ul li button { 
+            width: 100%; 
+            background: none; 
+            color: white; 
+            border: 2px solid white; 
+            cursor: pointer; 
+            transition: background-color 0.3s ease;
+        }
+        .sidebar ul li button:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+
+        #modal {
+            display: none;
+            position: fixed;
+            z-index: 1100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+
+        .modal-content {
+            background: linear-gradient(to bottom right, #FFE4E1, #FFB6C1);
+            margin: 15% auto;
+            padding: 20px;
+            border: 2px solid #FF69B4;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .close {
+            color: #FF1493;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .resumen {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        .resumen h3 {
+            color: #8B4513;
+            margin-bottom: 15px;
+        }
+
+        .resumen ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        .resumen li {
+            margin: 10px 0;
+            padding: 5px;
+            border-bottom: 1px solid #FFB6C1;
+        }
+
+        .edit-button {
+            background-color: #FF69B4;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .edit-button:hover {
+            background-color: #FF1493;
+        }
+
+        .clienta-pedido {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: rgba(255, 182, 193, 0.2); /* Fondo pastel */
+            border: 1px solid #FFB6C1; /* Borde rosado */
+        }
+
+        .clienta-pedido:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Estilos para los stickers */
+        .sticker {
+            position: absolute;
+            z-index: 1;
+            opacity: 0.8;
+        }
+        .sticker.pintauñas {
+            top: 10px;
+            left: 10px;
+            width: 60px;
+        }
+        .sticker.pintauñas-derecha {
+            bottom: 10px;
+            right: 10px;
+            width: 60px;
+        }
+        .sticker.bob-esponja {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Stickers decorativos -->
+    <img src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png" alt="Pintauñas" class="sticker pintauñas">
+    <img src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png" alt="Pintauñas" class="sticker pintauñas-derecha">
+    <img src="https://cdn-icons-png.flaticon.com/512/3199/3199979.png" alt="Bob Esponja" class="sticker bob-esponja">
+
+    <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+
+    <div class="sidebar" id="sidebar">
+        <h3>Menú de Ventas</h3>
+        <ul>
+            <li><button onclick="mostrarResumen()">Ver Totales</button></li>
+            <li><button onclick="abrirModalBuscarClienta()">Buscar Clienta</button></li>
+            <li><button onclick="abrirModalEliminarPedido()">Eliminar Pedido</button></li>
+            <li><button onclick="confirmarReiniciarInventario()">Reiniciar Inventario</button></li>
+        </ul>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="cerrarModal()">&times;</span>
+            <div id="modal-contenido"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>Ventas Mary</h2>
+
+        <div id="producto-form">
+            <input type="text" id="nombreProducto" placeholder="Nombre del producto">
+            <input type="number" id="precioProducto" placeholder="Precio del producto">
+            <button onclick="agregarProducto()">Agregar Producto</button>
+        </div>
+
+        <div id="cliente-form" style="display:none;">
+            <input type="text" id="nombreClienta" placeholder="Nombre de la clienta (ej: Anahi Rebolledo 2)">
+            <button onclick="agregarCliente()">Agregar Clienta</button>
+            <button onclick="finalizarProducto()">Finalizar Producto</button>
+        </div>
+
+        <div class="resumen" id="resumen"></div>
+    </div>
+
+    <script>
+        let pedidos = JSON.parse(localStorage.getItem('pedidos')) || {};
+        let productoActual = {};
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        function abrirModal(contenido) {
+            document.getElementById('modal-contenido').innerHTML = contenido;
+            document.getElementById('modal').style.display = 'block';
+        }
+
+        function cerrarModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        function agregarProducto() {
+            const nombre = document.getElementById('nombreProducto').value.trim();
+            const precio = parseInt(document.getElementById('precioProducto').value);
+
+            if (nombre && precio > 0) {
+                productoActual = { nombre: nombre, precio: precio };
+                document.getElementById('producto-form').style.display = 'none';
+                document.getElementById('cliente-form').style.display = 'block';
+            } else {
+                alert('Por favor, ingrese un nombre y precio válido para el producto.');
+            }
+        }
+
+        function agregarCliente() {
+            const entrada = document.getElementById('nombreClienta').value.trim();
+            if (entrada) {
+                let partes = entrada.split(' ');
+                let cantidad = 1;
+                let nombreClienta;
+
+                if (!isNaN(partes[partes.length - 1])) {
+                    cantidad = parseInt(partes.pop());
+                    nombreClienta = partes.join(' ');
+                } else {
+                    nombreClienta = entrada;
+                }
+
+                // Formatear el nombre de la clienta (primera letra en mayúscula)
+                nombreClienta = nombreClienta.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                if (!pedidos[nombreClienta]) {
+                    pedidos[nombreClienta] = [];
+                }
+
+                pedidos[nombreClienta].push({
+                    producto: productoActual.nombre,
+                    precio: productoActual.precio,
+                    cantidad: cantidad
+                });
+
+                document.getElementById('nombreClienta').value = '';
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+            } else {
+                alert('Ingrese el nombre completo de la clienta y la cantidad.');
+            }
+        }
+
+        function finalizarProducto() {
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('precioProducto').value = '';
+            document.getElementById('producto-form').style.display = 'block';
+            document.getElementById('cliente-form').style.display = 'none';
+        }
+
+        function mostrarResumen() {
+            let resumen = '<h3>Resumen de Pedidos:</h3>';
+            for (let clienta in pedidos) {
+                let total = 0;
+                resumen += `<div class="clienta-pedido"><strong>${clienta}</strong><ul>`;
+                pedidos[clienta].forEach((pedido) => {
+                    let subtotal = pedido.precio * pedido.cantidad;
+                    total += subtotal;
+                    resumen += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}</li>`;
+                });
+                resumen += `</ul><strong>Total: $${total}</strong></div>`;
+            }
+            document.getElementById('resumen').innerHTML = resumen;
+        }
+
+        function editarPedido(clienta, index) {
+            const pedido = pedidos[clienta][index];
+            const contenido = `
+                <h3>Editar Cantidad</h3>
+                <p>${pedido.producto} - Precio: $${pedido.precio}</p>
+                <input type="number" id="nuevaCantidad" value="${pedido.cantidad}" min="1">
+                <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function guardarEdicion(clienta, index) {
+            const nuevaCantidad = parseInt(document.getElementById('nuevaCantidad').value);
+            if (nuevaCantidad > 0) {
+                pedidos[clienta][index].cantidad = nuevaCantidad;
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                cerrarModal();
+                mostrarResumen();
+            } else {
+                alert('Ingrese una cantidad válida.');
+            }
+        }
+
+        function abrirModalBuscarClienta() {
+            const contenido = `
+                <h3>Buscar Clienta</h3>
+                <input type="text" id="buscarNombreClienta" placeholder="Nombre de la clienta">
+                <button onclick="buscarClienta()">Buscar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function buscarClienta() {
+            const nombre = document.getElementById('buscarNombreClienta').value.trim();
+            if (pedidos[nombre]) {
+                let resultado = `<div class="clienta-pedido"><h3>Pedidos de ${nombre}:</h3><ul>`;
+                let total = 0;
+                pedidos[nombre].forEach((pedido, index) => {
+                    let subtotal = pedido.precio * pedido.cantidad;
+                    total += subtotal;
+                    resultado += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
+                        <button class="edit-button" onclick="editarPedido('${nombre}', ${index})">Editar</button></li>`;
+                });
+                resultado += `</ul><strong>Total: $${total}</strong></div>`;
+                document.getElementById('modal-contenido').innerHTML = resultado;
+            } else {
+                document.getElementById('modal-contenido').innerHTML = '<p>No se encontraron pedidos para esta clienta.</p>';
+            }
+        }
+
+        function abrirModalEliminarPedido() {
+            const contenido = `
+                <h3>Eliminar Pedido</h3>
+                <input type="text" id="eliminarNombreClienta" placeholder="Nombre de la clienta">
+                <button onclick="eliminarPedido()">Eliminar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function eliminarPedido() {
+            const nombre = document.getElementById('eliminarNombreClienta').value.trim();
+            if (pedidos[nombre]) {
+                delete pedidos[nombre];
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                cerrarModal();
+                mostrarResumen();
+                alert('Pedido eliminado correctamente.');
+            } else {
+                alert('No se encontró un pedido para esta clienta.');
+            }
+        }
+
+        function confirmarReiniciarInventario() {
+            const contenido = `
+                <h3>Confirmar Reinicio</h3>
+                <p>¿Está segura de que desea reiniciar el inventario?</p>
+                <button onclick="reiniciarInventario()">Sí, reiniciar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function reiniciarInventario() {
+            pedidos = {};
+            localStorage.removeItem('pedidos');
+            cerrarModal();
+            mostrarResumen();
+            alert('Inventario reiniciado correctamente.');
+        }
+    </script>
+</body>
+</html>
