@@ -253,8 +253,7 @@
             <li><button onclick="mostrarResumen()">Ver Totales</button></li>
             <li><button onclick="abrirModalBuscarClienta()">Buscar Clienta</button></li>
             <li><button onclick="abrirModalRegistrarClienta()">Registrar Clienta</button></li>
-            <li><button onclick="abrirModalEditarClienta()">Editar Clienta</button></li>
-            <li><button onclick="abrirModalEliminarPedido()">Eliminar Pedido</button></li>
+            <li><button onclick="abrirModalVerClientas()">Ver Clientas Registradas</button></li>
             <li><button onclick="confirmarReiniciarInventario()">Reiniciar Inventario</button></li>
         </ul>
     </div>
@@ -401,23 +400,44 @@
             }
         }
 
-        function abrirModalEditarClienta() {
+        function abrirModalVerClientas() {
+            let contenido = '<h3>Clientas Registradas</h3>';
+            if (Object.keys(clientasRegistradas).length > 0) {
+                contenido += '<ul>';
+                for (let nombre in clientasRegistradas) {
+                    contenido += `
+                        <li>
+                            <strong>${nombre}</strong>: ${clientasRegistradas[nombre]}
+                            <button class="edit-button" onclick="abrirModalEditarClienta('${nombre}')">Editar</button>
+                            <button class="edit-button" onclick="eliminarClienta('${nombre}')">Eliminar</button>
+                        </li>
+                    `;
+                }
+                contenido += '</ul>';
+            } else {
+                contenido += '<p>No hay clientas registradas.</p>';
+            }
+            abrirModal(contenido);
+        }
+
+        function abrirModalEditarClienta(nombre) {
             const contenido = `
                 <h3>Editar Clienta</h3>
-                <input type="text" id="nombreClientaEditar" placeholder="Nombre de la clienta">
-                <input type="text" id="telefonoClientaEditar" placeholder="Nuevo número de teléfono">
-                <button onclick="editarClienta()">Guardar Cambios</button>
+                <input type="text" id="nombreClientaEditar" value="${nombre}" placeholder="Nombre de la clienta">
+                <input type="text" id="telefonoClientaEditar" value="${clientasRegistradas[nombre]}" placeholder="Nuevo número de teléfono">
+                <button onclick="editarClienta('${nombre}')">Guardar Cambios</button>
             `;
             abrirModal(contenido);
         }
 
-        function editarClienta() {
+        function editarClienta(nombreAnterior) {
             const nombre = document.getElementById('nombreClientaEditar').value.trim();
             const telefono = document.getElementById('telefonoClientaEditar').value.trim();
 
             if (nombre && telefono) {
-                if (clientasRegistradas[nombre]) {
-                    clientasRegistradas[nombre] = telefono;
+                if (clientasRegistradas[nombreAnterior]) {
+                    delete clientasRegistradas[nombreAnterior]; // Eliminar el registro anterior
+                    clientasRegistradas[nombre] = telefono; // Agregar el nuevo registro
                     localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
                     cerrarModal();
                     alert('Datos de la clienta actualizados correctamente.');
@@ -426,6 +446,15 @@
                 }
             } else {
                 alert('Por favor, ingrese el nombre y el nuevo número de teléfono de la clienta.');
+            }
+        }
+
+        function eliminarClienta(nombre) {
+            if (confirm(`¿Estás segura de que deseas eliminar a ${nombre} del registro?`)) {
+                delete clientasRegistradas[nombre];
+                localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                abrirModalVerClientas(); // Actualizar la lista de clientas
+                alert('Clienta eliminada correctamente.');
             }
         }
 
@@ -505,28 +534,6 @@
                 mostrarResumen();
             } else {
                 alert('Ingrese una cantidad válida.');
-            }
-        }
-
-        function abrirModalEliminarPedido() {
-            const contenido = `
-                <h3>Eliminar Pedido</h3>
-                <input type="text" id="eliminarNombreClienta" placeholder="Nombre de la clienta">
-                <button onclick="eliminarPedido()">Eliminar</button>
-            `;
-            abrirModal(contenido);
-        }
-
-        function eliminarPedido() {
-            const nombre = document.getElementById('eliminarNombreClienta').value.trim();
-            if (pedidos[nombre]) {
-                delete pedidos[nombre];
-                localStorage.setItem('pedidos', JSON.stringify(pedidos));
-                cerrarModal();
-                mostrarResumen();
-                alert('Pedido eliminado correctamente.');
-            } else {
-                alert('No se encontró un pedido para esta clienta.');
             }
         }
 
