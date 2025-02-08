@@ -222,6 +222,21 @@
             right: 10px;
             width: 60px;
         }
+
+        /* Estilos para el botón de WhatsApp */
+        button.enviar-whatsapp {
+            background-color: #25D366;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button.enviar-whatsapp:hover {
+            background-color: #128C7E;
+        }
     </style>
 </head>
 <body>
@@ -234,8 +249,10 @@
     <div class="sidebar" id="sidebar">
         <h3>Menú de Ventas</h3>
         <ul>
+            <li><button onclick="irAInicio()">Inicio</button></li>
             <li><button onclick="mostrarResumen()">Ver Totales</button></li>
             <li><button onclick="abrirModalBuscarClienta()">Buscar Clienta</button></li>
+            <li><button onclick="abrirModalRegistrarClienta()">Registrar Clienta</button></li>
             <li><button onclick="abrirModalEliminarPedido()">Eliminar Pedido</button></li>
             <li><button onclick="confirmarReiniciarInventario()">Reiniciar Inventario</button></li>
         </ul>
@@ -268,6 +285,7 @@
 
     <script>
         let pedidos = JSON.parse(localStorage.getItem('pedidos')) || {};
+        let clientasRegistradas = JSON.parse(localStorage.getItem('clientasRegistradas')) || {};
         let productoActual = {};
 
         function toggleSidebar() {
@@ -281,6 +299,12 @@
 
         function cerrarModal() {
             document.getElementById('modal').style.display = 'none';
+        }
+
+        function irAInicio() {
+            document.getElementById('resumen').innerHTML = '';
+            document.getElementById('producto-form').style.display = 'block';
+            document.getElementById('cliente-form').style.display = 'none';
         }
 
         function agregarProducto() {
@@ -352,26 +376,27 @@
             document.getElementById('resumen').innerHTML = resumen;
         }
 
-        function editarPedido(clienta, index) {
-            const pedido = pedidos[clienta][index];
+        function abrirModalRegistrarClienta() {
             const contenido = `
-                <h3>Editar Cantidad</h3>
-                <p>${pedido.producto} - Precio: $${pedido.precio}</p>
-                <input type="number" id="nuevaCantidad" value="${pedido.cantidad}" min="1">
-                <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
+                <h3>Registrar Clienta</h3>
+                <input type="text" id="nombreClientaRegistro" placeholder="Nombre de la clienta">
+                <input type="text" id="telefonoClientaRegistro" placeholder="Número de teléfono">
+                <button onclick="registrarClienta()">Registrar</button>
             `;
             abrirModal(contenido);
         }
 
-        function guardarEdicion(clienta, index) {
-            const nuevaCantidad = parseInt(document.getElementById('nuevaCantidad').value);
-            if (nuevaCantidad > 0) {
-                pedidos[clienta][index].cantidad = nuevaCantidad;
-                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+        function registrarClienta() {
+            const nombre = document.getElementById('nombreClientaRegistro').value.trim();
+            const telefono = document.getElementById('telefonoClientaRegistro').value.trim();
+
+            if (nombre && telefono) {
+                clientasRegistradas[nombre] = telefono;
+                localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
                 cerrarModal();
-                mostrarResumen();
+                alert('Clienta registrada correctamente.');
             } else {
-                alert('Ingrese una cantidad válida.');
+                alert('Por favor, ingrese el nombre y el número de teléfono de la clienta.');
             }
         }
 
@@ -395,10 +420,62 @@
                     resultado += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
                         <button class="edit-button" onclick="editarPedido('${nombre}', ${index})">Editar</button></li>`;
                 });
-                resultado += `</ul><strong>Total: $${total}</strong></div>`;
+                resultado += `</ul><strong>Total: $${total}</strong>`;
+
+                // Botón para enviar por WhatsApp
+                if (clientasRegistradas[nombre]) {
+                    resultado += `<button class="enviar-whatsapp" onclick="enviarWhatsApp('${nombre}')">Enviar pedido por WhatsApp</button>`;
+                } else {
+                    resultado += `<p style="color: red;">No hay número registrado para esta clienta.</p>`;
+                }
+
+                resultado += `</div>`;
                 document.getElementById('modal-contenido').innerHTML = resultado;
             } else {
                 document.getElementById('modal-contenido').innerHTML = '<p>No se encontraron pedidos para esta clienta.</p>';
+            }
+        }
+
+        function enviarWhatsApp(clienta) {
+            const telefono = clientasRegistradas[clienta];
+            if (telefono) {
+                let mensaje = `Hola ${clienta}, aquí está el resumen de tu pedido:\n\n`;
+                let total = 0;
+
+                pedidos[clienta].forEach((pedido) => {
+                    const subtotal = pedido.precio * pedido.cantidad;
+                    total += subtotal;
+                    mensaje += `- ${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
+                });
+
+                mensaje += `\nTotal a pagar: $${total}\n¡Gracias por tu compra!`;
+                const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
+                window.open(url, '_blank');
+            } else {
+                alert('No hay número registrado para esta clienta.');
+            }
+        }
+
+        function editarPedido(clienta, index) {
+            const pedido = pedidos[clienta][index];
+            const contenido = `
+                <h3>Editar Cantidad</h3>
+                <p>${pedido.producto} - Precio: $${pedido.precio}</p>
+                <input type="number" id="nuevaCantidad" value="${pedido.cantidad}" min="1">
+                <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function guardarEdicion(clienta, index) {
+            const nuevaCantidad = parseInt(document.getElementById('nuevaCantidad').value);
+            if (nuevaCantidad > 0) {
+                pedidos[clienta][index].cantidad = nuevaCantidad;
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                cerrarModal();
+                mostrarResumen();
+            } else {
+                alert('Ingrese una cantidad válida.');
             }
         }
 
@@ -435,7 +512,9 @@
 
         function reiniciarInventario() {
             pedidos = {};
+            clientasRegistradas = {};
             localStorage.removeItem('pedidos');
+            localStorage.removeItem('clientasRegistradas');
             cerrarModal();
             mostrarResumen();
             alert('Inventario reiniciado correctamente.');
