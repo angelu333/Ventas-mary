@@ -253,6 +253,7 @@
             <li><button onclick="mostrarResumen()">Ver Totales</button></li>
             <li><button onclick="abrirModalBuscarClienta()">Buscar Clienta</button></li>
             <li><button onclick="abrirModalRegistrarClienta()">Registrar Clienta</button></li>
+            <li><button onclick="abrirModalEditarClienta()">Editar Clienta</button></li>
             <li><button onclick="abrirModalEliminarPedido()">Eliminar Pedido</button></li>
             <li><button onclick="confirmarReiniciarInventario()">Reiniciar Inventario</button></li>
         </ul>
@@ -400,6 +401,34 @@
             }
         }
 
+        function abrirModalEditarClienta() {
+            const contenido = `
+                <h3>Editar Clienta</h3>
+                <input type="text" id="nombreClientaEditar" placeholder="Nombre de la clienta">
+                <input type="text" id="telefonoClientaEditar" placeholder="Nuevo número de teléfono">
+                <button onclick="editarClienta()">Guardar Cambios</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function editarClienta() {
+            const nombre = document.getElementById('nombreClientaEditar').value.trim();
+            const telefono = document.getElementById('telefonoClientaEditar').value.trim();
+
+            if (nombre && telefono) {
+                if (clientasRegistradas[nombre]) {
+                    clientasRegistradas[nombre] = telefono;
+                    localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                    cerrarModal();
+                    alert('Datos de la clienta actualizados correctamente.');
+                } else {
+                    alert('No se encontró una clienta con ese nombre.');
+                }
+            } else {
+                alert('Por favor, ingrese el nombre y el nuevo número de teléfono de la clienta.');
+            }
+        }
+
         function abrirModalBuscarClienta() {
             const contenido = `
                 <h3>Buscar Clienta</h3>
@@ -512,12 +541,10 @@
 
         function reiniciarInventario() {
             pedidos = {};
-            clientasRegistradas = {};
             localStorage.removeItem('pedidos');
-            localStorage.removeItem('clientasRegistradas');
             cerrarModal();
             mostrarResumen();
-            alert('Inventario reiniciado correctamente.');
+            alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
         }
     </script>
 </body>
