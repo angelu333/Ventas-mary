@@ -14,7 +14,7 @@
             background-color: #FFF0F5; 
             margin: 0; 
             color: #333;
-            background-image: url('https://www.transparenttextures.com/patterns/soft-circle-scales.png'); /* Textura de fondo */
+            background-image: url('https://www.transparenttextures.com/patterns/soft-circle-scales.png');
         }
         .container { 
             max-width: 500px; 
@@ -198,8 +198,8 @@
             margin-bottom: 20px;
             padding: 15px;
             border-radius: 8px;
-            background-color: rgba(255, 182, 193, 0.2); /* Fondo pastel */
-            border: 1px solid #FFB6C1; /* Borde rosado */
+            background-color: rgba(255, 182, 193, 0.2);
+            border: 1px solid #FFB6C1;
         }
 
         .clienta-pedido:last-child {
@@ -334,7 +334,6 @@
                     nombreClienta = entrada;
                 }
 
-                // Formatear el nombre de la clienta (primera letra en mayúscula)
                 nombreClienta = nombreClienta.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
                 if (!pedidos[nombreClienta]) {
@@ -388,19 +387,27 @@
 
         function registrarClienta() {
             const nombre = document.getElementById('nombreClientaRegistro').value.trim();
-            const telefono = document.getElementById('telefonoClientaRegistro').value.trim();
+            let telefono = document.getElementById('telefonoClientaRegistro').value.trim();
 
             if (nombre && telefono) {
-                clientasRegistradas[nombre] = telefono;
-                localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
-                cerrarModal();
-                alert('Clienta registrada correctamente.');
+                // Limpiamos el número de teléfono de cualquier carácter no numérico
+                telefono = telefono.replace(/\D/g, '');
+                
+                // Verificamos que el número tenga 10 dígitos
+                if (telefono.length === 10) {
+                    clientasRegistradas[nombre] = telefono;
+                    localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                    cerrarModal();
+                    alert('Clienta registrada correctamente.');
+                } else {
+                    alert('Por favor, ingrese un número de teléfono válido de 10 dígitos.');
+                }
             } else {
                 alert('Por favor, ingrese el nombre y el número de teléfono de la clienta.');
             }
         }
 
-        function abrirModalVerClientas() {
+     function abrirModalVerClientas() {
             let contenido = '<h3>Clientas Registradas</h3>';
             if (Object.keys(clientasRegistradas).length > 0) {
                 contenido += '<ul>';
@@ -432,17 +439,25 @@
 
         function editarClienta(nombreAnterior) {
             const nombre = document.getElementById('nombreClientaEditar').value.trim();
-            const telefono = document.getElementById('telefonoClientaEditar').value.trim();
+            let telefono = document.getElementById('telefonoClientaEditar').value.trim();
 
             if (nombre && telefono) {
-                if (clientasRegistradas[nombreAnterior]) {
-                    delete clientasRegistradas[nombreAnterior]; // Eliminar el registro anterior
-                    clientasRegistradas[nombre] = telefono; // Agregar el nuevo registro
-                    localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
-                    cerrarModal();
-                    alert('Datos de la clienta actualizados correctamente.');
+                // Limpiamos el número de teléfono de cualquier carácter no numérico
+                telefono = telefono.replace(/\D/g, '');
+                
+                // Verificamos que el número tenga 10 dígitos
+                if (telefono.length === 10) {
+                    if (clientasRegistradas[nombreAnterior]) {
+                        delete clientasRegistradas[nombreAnterior];
+                        clientasRegistradas[nombre] = telefono;
+                        localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                        cerrarModal();
+                        alert('Datos de la clienta actualizados correctamente.');
+                    } else {
+                        alert('No se encontró una clienta con ese nombre.');
+                    }
                 } else {
-                    alert('No se encontró una clienta con ese nombre.');
+                    alert('Por favor, ingrese un número de teléfono válido de 10 dígitos.');
                 }
             } else {
                 alert('Por favor, ingrese el nombre y el nuevo número de teléfono de la clienta.');
@@ -453,7 +468,7 @@
             if (confirm(`¿Estás segura de que deseas eliminar a ${nombre} del registro?`)) {
                 delete clientasRegistradas[nombre];
                 localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
-                abrirModalVerClientas(); // Actualizar la lista de clientas
+                abrirModalVerClientas();
                 alert('Clienta eliminada correctamente.');
             }
         }
@@ -480,7 +495,6 @@
                 });
                 resultado += `</ul><strong>Total: $${total}</strong>`;
 
-                // Botón para enviar por WhatsApp
                 if (clientasRegistradas[nombre]) {
                     resultado += `<button class="enviar-whatsapp" onclick="enviarWhatsApp('${nombre}')">Enviar pedido por WhatsApp</button>`;
                 } else {
@@ -497,18 +511,31 @@
         function enviarWhatsApp(clienta) {
             const telefono = clientasRegistradas[clienta];
             if (telefono) {
-                let mensaje = `Hola ${clienta}, aquí está el resumen de tu pedido:\n\n`;
-                let total = 0;
+                // Limpiamos el número de teléfono de cualquier carácter no numérico
+                let numeroLimpio = telefono.replace(/\D/g, '');
+                
+                // Si el número no empieza con 52, lo agregamos
+                if (!numeroLimpio.startsWith('52')) {
+                    numeroLimpio = '52' + numeroLimpio;
+                }
+                
+                // Si el número tiene 12 dígitos (52 + 10 dígitos), procedemos
+                if (numeroLimpio.length === 12) {
+                    let mensaje = `Hola ${clienta}, aquí está el resumen de tu pedido:\n\n`;
+                    let total = 0;
 
-                pedidos[clienta].forEach((pedido) => {
-                    const subtotal = pedido.precio * pedido.cantidad;
-                    total += subtotal;
-                    mensaje += `- ${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
-                });
+                    pedidos[clienta].forEach((pedido) => {
+                        const subtotal = pedido.precio * pedido.cantidad;
+                        total += subtotal;
+                        mensaje += `- ${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
+                    });
 
-                mensaje += `\nTotal a pagar: $${total}\n¡Gracias por tu compra!`;
-                const url = `https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`;
-                window.open(url, '_blank');
+                    mensaje += `\nTotal a pagar: $${total}\n¡Gracias por tu compra!`;
+                    const url = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
+                    window.open(url, '_blank');
+                } else {
+                    alert('El número de teléfono no tiene el formato correcto. Debe tener 10 dígitos.');
+                }
             } else {
                 alert('No hay número registrado para esta clienta.');
             }
