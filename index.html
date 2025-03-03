@@ -254,6 +254,8 @@
             <li><button onclick="abrirModalBuscarClienta()">Buscar Clienta</button></li>
             <li><button onclick="abrirModalRegistrarClienta()">Registrar Clienta</button></li>
             <li><button onclick="abrirModalVerClientas()">Ver Clientas Registradas</button></li>
+            <li><button onclick="verProductosYClientas()">Ver Productos y Clientas</button></li>
+            <li><button onclick="generarPDF()">Generar PDF de Pedidos</button></li>
             <li><button onclick="confirmarReiniciarInventario()">Reiniciar Inventario</button></li>
         </ul>
     </div>
@@ -282,6 +284,9 @@
 
         <div class="resumen" id="resumen"></div>
     </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
 
     <script>
         let pedidos = JSON.parse(localStorage.getItem('pedidos')) || {};
@@ -485,7 +490,10 @@
         function buscarClienta() {
             const nombre = document.getElementById('buscarNombreClienta').value.trim();
             if (pedidos[nombre]) {
-                let resultado = `<div class="clienta-pedido"><h3>Pedidos de ${nombre}:</h3><ul>`;
+                let resultado = `<div class="clienta-pedido">
+                    <h3>Pedidos de ${nombre}:</h3>
+                    <button class="edit-button" onclick="editarNombreClienta('${nombre}')">Editar Nombre</button>
+                    <ul>`;
                 let total = 0;
                 pedidos[nombre].forEach((pedido, index) => {
                     let subtotal = pedido.precio * pedido.cantidad;
@@ -505,6 +513,50 @@
                 document.getElementById('modal-contenido').innerHTML = resultado;
             } else {
                 document.getElementById('modal-contenido').innerHTML = '<p>No se encontraron pedidos para esta clienta.</p>';
+            }
+        }
+
+        function editarNombreClienta(nombreAntiguo) {
+            const contenido = `
+                <h3>Editar Nombre de Clienta</h3>
+                <input type="text" id="nuevoNombreClienta" value="${nombreAntiguo}" placeholder="Nuevo nombre de la clienta">
+                <button onclick="guardarNuevoNombre('${nombreAntiguo}')">Guardar Nuevo Nombre</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function guardarNuevoNombre(nombreAntiguo) {
+            const nuevoNombre = document.getElementById('nuevoNombreClienta').value.trim();
+            
+            if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
+                // Convertir primera letra de cada palabra a mayúscula
+                const nombreFormateado = nuevoNombre.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+
+                // Guardar los pedidos con el nuevo nombre
+                pedidos[nombreFormateado] = pedidos[nombreAntiguo];
+                // Eliminar los pedidos con el nombre antiguo
+                delete pedidos[nombreAntiguo];
+                
+                // Si la clienta está registrada, actualizar también su registro
+                if (clientasRegistradas[nombreAntiguo]) {
+                    clientasRegistradas[nombreFormateado] = clientasRegistradas[nombreAntiguo];
+                    delete clientasRegistradas[nombreAntiguo];
+                    localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                }
+                
+                // Guardar los cambios
+                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                
+                // Cerrar el modal y mostrar mensaje de éxito
+                cerrarModal();
+                alert('Nombre de la clienta actualizado correctamente.');
+                mostrarResumen();
+            } else if (nuevoNombre === nombreAntiguo) {
+                alert('El nuevo nombre es igual al anterior.');
+            } else {
+                alert('Por favor, ingrese un nombre válido.');
             }
         }
 
@@ -579,6 +631,101 @@
             cerrarModal();
             mostrarResumen();
             alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
+        }
+
+        function verProductosYClientas() {
+            let productosMap = new Map();
+            
+            // Recopilamos todos los productos y sus clientas
+            for (let clienta in pedidos) {
+                pedidos[clienta].forEach(pedido => {
+                    if (!productosMap.has(pedido.producto)) {
+                        productosMap.set(pedido.producto, {
+                            precio: pedido.precio,
+                            clientas: new Set()
+                        });
+                    }
+                    productosMap.get(pedido.producto).clientas.add(clienta);
+                });
+            }
+
+            let contenido = '<h3>Productos y Clientas</h3>';
+            productosMap.forEach((info, producto) => {
+                contenido += `
+                    <div class="clienta-pedido">
+                        <h4>${producto} - $${info.precio}</h4>
+                        <p><strong>Ordenado por:</strong></p>
+                        <ul>
+                `;
+                
+                info.clientas.forEach(clienta => {
+                    contenido += `
+                        <li>
+                            ${clienta}
+                            <button class="edit-button" onclick="editarNombreClienta('${clienta}')">Editar Nombre</button>
+                        </li>
+                    `;
+                });
+                
+                contenido += '</ul></div>';
+            });
+
+            abrirModal(contenido);
+        }
+
+        function generarPDF() {
+            // Importamos jsPDF
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Configuración de estilos
+            doc.setFont("helvetica");
+            doc.setFontSize(20);
+            doc.text("Resumen de Pedidos - Ventas Mary", 20, 20);
+
+            let yPos = 40;
+            const margen = 20;
+            const lineHeight = 7;
+
+            for (let clienta in pedidos) {
+                // Verificar si necesitamos una nueva página
+                if (yPos > 250) {
+                    doc.addPage();
+                    yPos = 20;
+                }
+
+                doc.setFontSize(16);
+                doc.text(clienta, margen, yPos);
+                yPos += lineHeight;
+
+                let total = 0;
+                doc.setFontSize(12);
+
+                pedidos[clienta].forEach(pedido => {
+                    const subtotal = pedido.precio * pedido.cantidad;
+                    total += subtotal;
+                    
+                    // Verificar si necesitamos una nueva página
+                    if (yPos > 250) {
+                        doc.addPage();
+                        yPos = 20;
+                    }
+
+                    doc.text(
+                        `${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}`,
+                        margen + 5,
+                        yPos
+                    );
+                    yPos += lineHeight;
+                });
+
+                doc.setFontSize(14);
+                doc.text(`Total: $${total}`, margen + 5, yPos);
+                yPos += lineHeight * 2;
+            }
+
+            // Guardar el PDF
+            doc.save('Ventas_Mary_Pedidos.pdf');
         }
     </script>
 </body>
