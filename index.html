@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ventas Mary</title>
+    <!-- Agregar Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    
+    <!-- Mantener los otros scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+
     <style>
         /* Fuentes personalizadas */
         @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Poppins:wght@400;600&display=swap');
@@ -285,13 +293,42 @@
         <div class="resumen" id="resumen"></div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
-
     <script>
-        let pedidos = JSON.parse(localStorage.getItem('pedidos')) || {};
-        let clientasRegistradas = JSON.parse(localStorage.getItem('clientasRegistradas')) || {};
+        // Configuración de Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrr78dgKymDyjxgZitGq0QLddCy8thkXU",
+            authDomain: "ventasmary-f0aa0.firebaseapp.com",
+            databaseURL: "https://ventasmary-f0aa0-default-rtdb.firebaseio.com",
+            projectId: "ventasmary-f0aa0",
+            storageBucket: "ventasmary-f0aa0.firebasestorage.app",
+            messagingSenderId: "45177270937",
+            appId: "1:45177270937:web:040e6c5f0f8c7233cf3e08",
+            measurementId: "G-GZ5LH02RS6"
+        };
+
+        // Inicializar Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Variables globales
+        let pedidos = {};
+        let clientasRegistradas = {};
         let productoActual = {};
+
+        // Cargar datos iniciales
+        function cargarDatos() {
+            database.ref('pedidos').on('value', (snapshot) => {
+                pedidos = snapshot.val() || {};
+                mostrarResumen();
+            });
+
+            database.ref('clientasRegistradas').on('value', (snapshot) => {
+                clientasRegistradas = snapshot.val() || {};
+            });
+        }
+
+        // Llamar a cargarDatos cuando se inicia la aplicación
+        cargarDatos();
 
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
@@ -352,7 +389,8 @@
                 });
 
                 document.getElementById('nombreClienta').value = '';
-                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                // Guardar en Firebase en lugar de localStorage
+                database.ref('pedidos').set(pedidos);
             } else {
                 alert('Ingrese el nombre completo de la clienta y la cantidad.');
             }
@@ -395,13 +433,12 @@
             let telefono = document.getElementById('telefonoClientaRegistro').value.trim();
 
             if (nombre && telefono) {
-                // Limpiamos el número de teléfono de cualquier carácter no numérico
                 telefono = telefono.replace(/\D/g, '');
                 
-                // Verificamos que el número tenga 10 dígitos
                 if (telefono.length === 10) {
                     clientasRegistradas[nombre] = telefono;
-                    localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                    // Guardar en Firebase
+                    database.ref('clientasRegistradas').set(clientasRegistradas);
                     cerrarModal();
                     alert('Clienta registrada correctamente.');
                 } else {
@@ -412,7 +449,7 @@
             }
         }
 
-     function abrirModalVerClientas() {
+        function abrirModalVerClientas() {
             let contenido = '<h3>Clientas Registradas</h3>';
             if (Object.keys(clientasRegistradas).length > 0) {
                 contenido += '<ul>';
@@ -447,15 +484,14 @@
             let telefono = document.getElementById('telefonoClientaEditar').value.trim();
 
             if (nombre && telefono) {
-                // Limpiamos el número de teléfono de cualquier carácter no numérico
                 telefono = telefono.replace(/\D/g, '');
                 
-                // Verificamos que el número tenga 10 dígitos
                 if (telefono.length === 10) {
                     if (clientasRegistradas[nombreAnterior]) {
                         delete clientasRegistradas[nombreAnterior];
                         clientasRegistradas[nombre] = telefono;
-                        localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                        // Actualizar Firebase
+                        database.ref('clientasRegistradas').set(clientasRegistradas);
                         cerrarModal();
                         alert('Datos de la clienta actualizados correctamente.');
                     } else {
@@ -472,7 +508,8 @@
         function eliminarClienta(nombre) {
             if (confirm(`¿Estás segura de que deseas eliminar a ${nombre} del registro?`)) {
                 delete clientasRegistradas[nombre];
-                localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                // Actualizar Firebase
+                database.ref('clientasRegistradas').set(clientasRegistradas);
                 abrirModalVerClientas();
                 alert('Clienta eliminada correctamente.');
             }
@@ -529,27 +566,20 @@
             const nuevoNombre = document.getElementById('nuevoNombreClienta').value.trim();
             
             if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
-                // Convertir primera letra de cada palabra a mayúscula
                 const nombreFormateado = nuevoNombre.split(' ').map(word => 
                     word.charAt(0).toUpperCase() + word.slice(1)
                 ).join(' ');
 
-                // Guardar los pedidos con el nuevo nombre
-                pedidos[nombreFormateado] = pedidos[nombreAntiguo];
-                // Eliminar los pedidos con el nombre antiguo
-                delete pedidos[nombreAntiguo];
-                
-                // Si la clienta está registrada, actualizar también su registro
-                if (clientasRegistradas[nombreAntiguo]) {
-                    clientasRegistradas[nombreFormateado] = clientasRegistradas[nombreAntiguo];
-                    delete clientasRegistradas[nombreAntiguo];
-                    localStorage.setItem('clientasRegistradas', JSON.stringify(clientasRegistradas));
+                if (pedidos[nombreFormateado]) {
+                    pedidos[nombreFormateado] = pedidos[nombreFormateado].concat(pedidos[nombreAntiguo]);
+                    delete pedidos[nombreAntiguo];
+                } else {
+                    pedidos[nombreFormateado] = pedidos[nombreAntiguo];
+                    delete pedidos[nombreAntiguo];
                 }
                 
-                // Guardar los cambios
-                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                database.ref('pedidos').set(pedidos);
                 
-                // Cerrar el modal y mostrar mensaje de éxito
                 cerrarModal();
                 alert('Nombre de la clienta actualizado correctamente.');
                 mostrarResumen();
@@ -563,15 +593,12 @@
         function enviarWhatsApp(clienta) {
             const telefono = clientasRegistradas[clienta];
             if (telefono) {
-                // Limpiamos el número de teléfono de cualquier carácter no numérico
                 let numeroLimpio = telefono.replace(/\D/g, '');
                 
-                // Si el número no empieza con 52, lo agregamos
                 if (!numeroLimpio.startsWith('52')) {
                     numeroLimpio = '52' + numeroLimpio;
                 }
                 
-                // Si el número tiene 12 dígitos (52 + 10 dígitos), procedemos
                 if (numeroLimpio.length === 12) {
                     let mensaje = `Hola ${clienta}, aquí está el resumen de tu pedido:\n\n`;
                     let total = 0;
@@ -608,7 +635,7 @@
             const nuevaCantidad = parseInt(document.getElementById('nuevaCantidad').value);
             if (nuevaCantidad > 0) {
                 pedidos[clienta][index].cantidad = nuevaCantidad;
-                localStorage.setItem('pedidos', JSON.stringify(pedidos));
+                database.ref('pedidos').set(pedidos);
                 cerrarModal();
                 mostrarResumen();
             } else {
@@ -619,33 +646,37 @@
         function confirmarReiniciarInventario() {
             const contenido = `
                 <h3>Confirmar Reinicio</h3>
-                <p>¿Está segura de que desea reiniciar el inventario?</p>
+                <p>¿Está segura de que desea reiniciar TODO el inventario? Esta acción no se puede deshacer.</p>
                 <button onclick="reiniciarInventario()">Sí, reiniciar</button>
             `;
             abrirModal(contenido);
         }
 
         function reiniciarInventario() {
-            pedidos = {};
-            localStorage.removeItem('pedidos');
-            cerrarModal();
-            mostrarResumen();
-            alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
+            if (confirm('¿Estás segura de que deseas reiniciar TODO el inventario? Esta acción no se puede deshacer.')) {
+                pedidos = {};
+                database.ref('pedidos').set({});
+                cerrarModal();
+                mostrarResumen();
+                alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
+            }
         }
 
         function verProductosYClientas() {
             let productosMap = new Map();
             
-            // Recopilamos todos los productos y sus clientas
             for (let clienta in pedidos) {
                 pedidos[clienta].forEach(pedido => {
                     if (!productosMap.has(pedido.producto)) {
                         productosMap.set(pedido.producto, {
                             precio: pedido.precio,
-                            clientas: new Set()
+                            clientas: new Map()
                         });
                     }
-                    productosMap.get(pedido.producto).clientas.add(clienta);
+                    if (!productosMap.get(pedido.producto).clientas.has(clienta)) {
+                        productosMap.get(pedido.producto).clientas.set(clienta, []);
+                    }
+                    productosMap.get(pedido.producto).clientas.get(clienta).push(pedidos[clienta].indexOf(pedido));
                 });
             }
 
@@ -655,16 +686,21 @@
                     <div class="clienta-pedido">
                         <h4>${producto} - $${info.precio}</h4>
                         <p><strong>Ordenado por:</strong></p>
+                        <button onclick="agregarClientaAProducto('${producto}', ${info.precio})" class="edit-button">Agregar Clienta</button>
                         <ul>
                 `;
                 
-                info.clientas.forEach(clienta => {
-                    contenido += `
-                        <li>
-                            ${clienta}
-                            <button class="edit-button" onclick="editarNombreClienta('${clienta}')">Editar Nombre</button>
-                        </li>
-                    `;
+                info.clientas.forEach((indices, clienta) => {
+                    indices.forEach(index => {
+                        const pedido = pedidos[clienta][index];
+                        contenido += `
+                            <li>
+                                ${clienta} (${pedido.cantidad} unidades)
+                                <button class="edit-button" onclick="editarNombreClientaEnPedido('${clienta}', ${index})">Corregir Nombre</button>
+                                <button class="edit-button" onclick="eliminarPedidoDeClienta('${clienta}', ${index})">Eliminar</button>
+                            </li>
+                        `;
+                    });
                 });
                 
                 contenido += '</ul></div>';
@@ -673,58 +709,154 @@
             abrirModal(contenido);
         }
 
-        function generarPDF() {
-            // Importamos jsPDF
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+        function agregarClientaAProducto(producto, precio) {
+            const contenido = `
+                <h3>Agregar Clienta a ${producto}</h3>
+                <input type="text" id="nombreClientaNueva" placeholder="Nombre de la clienta">
+                <input type="number" id="cantidadProducto" placeholder="Cantidad" min="1" value="1">
+                <button onclick="guardarNuevaClientaEnProducto('${producto}', ${precio})">Agregar</button>
+            `;
+            abrirModal(contenido);
+        }
 
-            // Configuración de estilos
-            doc.setFont("helvetica");
-            doc.setFontSize(20);
-            doc.text("Resumen de Pedidos - Ventas Mary", 20, 20);
+        function guardarNuevaClientaEnProducto(producto, precio) {
+            const nombre = document.getElementById('nombreClientaNueva').value.trim();
+            const cantidad = parseInt(document.getElementById('cantidadProducto').value);
 
-            let yPos = 40;
-            const margen = 20;
-            const lineHeight = 7;
+            if (nombre && cantidad > 0) {
+                const nombreFormateado = nombre.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
 
-            for (let clienta in pedidos) {
-                // Verificar si necesitamos una nueva página
-                if (yPos > 250) {
-                    doc.addPage();
-                    yPos = 20;
+                if (!pedidos[nombreFormateado]) {
+                    pedidos[nombreFormateado] = [];
                 }
 
-                doc.setFontSize(16);
+                pedidos[nombreFormateado].push({
+                    producto: producto,
+                    precio: precio,
+                    cantidad: cantidad
+                });
+
+                database.ref('pedidos').set(pedidos);
+                cerrarModal();
+                verProductosYClientas();
+            } else {
+                alert('Por favor, ingrese un nombre válido y una cantidad mayor a 0.');
+            }
+        }
+
+        function eliminarPedidoDeClienta(clienta, indexPedido) {
+            if (confirm(`¿Estás segura de que deseas eliminar este pedido de ${clienta}?`)) {
+                pedidos[clienta].splice(indexPedido, 1);
+                
+                if (pedidos[clienta].length === 0) {
+                    delete pedidos[clienta];
+                }
+
+                database.ref('pedidos').set(pedidos);
+                verProductosYClientas();
+            }
+        }
+
+        function editarNombreClientaEnPedido(nombreAntiguo, indexPedido) {
+            const pedido = pedidos[nombreAntiguo][indexPedido];
+            const contenido = `
+                <h3>Corregir Nombre de Clienta</h3>
+                <p>Producto: ${pedido.producto} - Cantidad: ${pedido.cantidad}</p>
+                <input type="text" id="nuevoNombreClienta" value="${nombreAntiguo}" placeholder="Nombre correcto de la clienta">
+                <button onclick="guardarNombreCorregido('${nombreAntiguo}', ${indexPedido})">Guardar Corrección</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function guardarNombreCorregido(nombreAntiguo, indexPedido) {
+            const nuevoNombre = document.getElementById('nuevoNombreClienta').value.trim();
+            
+            if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
+                const nombreFormateado = nuevoNombre.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+
+                const pedidoAMover = pedidos[nombreAntiguo][indexPedido];
+
+                if (!pedidos[nombreFormateado]) {
+                    pedidos[nombreFormateado] = [];
+                }
+                
+                pedidos[nombreFormateado].push(pedidoAMover);
+                pedidos[nombreAntiguo].splice(indexPedido, 1);
+
+                if (pedidos[nombreAntiguo].length === 0) {
+                    delete pedidos[nombreAntiguo];
+                }
+
+                database.ref('pedidos').set(pedidos);
+                
+                cerrarModal();
+                alert('Nombre de la clienta corregido correctamente.');
+                verProductosYClientas();
+            } else if (nuevoNombre === nombreAntiguo) {
+                alert('El nuevo nombre es igual al anterior.');
+            } else {
+                alert('Por favor, ingrese un nombre válido.');
+            }
+        }
+
+        function generarPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            doc.setFont("helvetica");
+            doc.setFontSize(16);
+            doc.text("Resumen de Pedidos - Ventas Mary", 15, 15);
+
+            let yPos = 25;
+            const margen = 15;
+            const lineHeight = 5;
+
+            const anchoDisponible = doc.internal.pageSize.getWidth() - (margen * 2);
+
+            for (let clienta in pedidos) {
+                if (yPos > 190) {
+                    doc.addPage('', 'landscape');
+                    yPos = 15;
+                }
+
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
                 doc.text(clienta, margen, yPos);
+                doc.setFont("helvetica", "normal");
                 yPos += lineHeight;
 
                 let total = 0;
-                doc.setFontSize(12);
+                doc.setFontSize(10);
 
                 pedidos[clienta].forEach(pedido => {
                     const subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
                     
-                    // Verificar si necesitamos una nueva página
-                    if (yPos > 250) {
-                        doc.addPage();
-                        yPos = 20;
+                    if (yPos > 190) {
+                        doc.addPage('', 'landscape');
+                        yPos = 15;
                     }
 
-                    doc.text(
-                        `${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}`,
-                        margen + 5,
-                        yPos
-                    );
+                    const textoProducto = `${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}`;
+                    doc.text(textoProducto, margen + 5, yPos);
                     yPos += lineHeight;
                 });
 
-                doc.setFontSize(14);
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
                 doc.text(`Total: $${total}`, margen + 5, yPos);
-                yPos += lineHeight * 2;
+                doc.setFont("helvetica", "normal");
+                yPos += lineHeight * 1.5;
             }
 
-            // Guardar el PDF
             doc.save('Ventas_Mary_Pedidos.pdf');
         }
     </script>
