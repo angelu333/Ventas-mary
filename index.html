@@ -19,7 +19,7 @@
         body { 
             font-family: 'Poppins', sans-serif; 
             padding: 20px; 
-            background-color: #FFF0F5; 
+            background-color: #FFF0F5;
             margin: 0; 
             color: #333;
             background-image: url('https://www.transparenttextures.com/patterns/soft-circle-scales.png');
@@ -245,9 +245,65 @@
         button.enviar-whatsapp:hover {
             background-color: #128C7E;
         }
+
+        /* Estilos para las mariposas */
+        .mariposa {
+            position: fixed;
+            pointer-events: none;
+            width: 20px;
+            height: 20px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FF69B4"><path d="M12 2L8 6l4 4-4 4 4 4-4 4 4 4 4-4-4-4 4-4-4-4 4-4z"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            z-index: 1;
+            opacity: 0.7;
+            animation: volarMariposa 15s linear infinite;
+        }
+
+        @keyframes volarMariposa {
+            0% {
+                transform: translate(0, 100vh) rotate(0deg) scale(1);
+            }
+            25% {
+                transform: translate(25vw, 75vh) rotate(45deg) scale(1.2);
+            }
+            50% {
+                transform: translate(50vw, 50vh) rotate(0deg) scale(1);
+            }
+            75% {
+                transform: translate(75vw, 25vh) rotate(-45deg) scale(1.2);
+            }
+            100% {
+                transform: translate(100vw, 0) rotate(0deg) scale(1);
+            }
+        }
+
+        /* Diferentes tamaños y velocidades para las mariposas */
+        .mariposa:nth-child(2n) {
+            animation-duration: 17s;
+            animation-delay: 2s;
+        }
+
+        .mariposa:nth-child(3n) {
+            animation-duration: 20s;
+            animation-delay: 4s;
+        }
+
+        .mariposa:nth-child(4n) {
+            animation-duration: 22s;
+            animation-delay: 6s;
+        }
+
+        .mariposa:nth-child(5n) {
+            animation-duration: 25s;
+            animation-delay: 8s;
+        }
     </style>
 </head>
 <body>
+    <!-- Agregar contenedor para las mariposas -->
+    <div id="mariposasContainer"></div>
+
     <!-- Stickers decorativos -->
     <img src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png" alt="Pintauñas" class="sticker pintauñas">
     <img src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png" alt="Pintauñas" class="sticker pintauñas-derecha">
@@ -572,29 +628,6 @@
             }
         }
 
-        function editarPedido(clienta, index) {
-            const pedido = pedidos[clienta][index];
-            const contenido = `
-                <h3>Editar Cantidad</h3>
-                <p>${pedido.producto} - Precio: $${pedido.precio}</p>
-                <input type="number" id="nuevaCantidad" value="${pedido.cantidad}" min="1">
-                <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
-            `;
-            abrirModal(contenido);
-        }
-
-        function guardarEdicion(clienta, index) {
-            const nuevaCantidad = parseInt(document.getElementById('nuevaCantidad').value);
-            if (nuevaCantidad > 0) {
-                pedidos[clienta][index].cantidad = nuevaCantidad;
-                database.ref('pedidos').set(pedidos);
-                cerrarModal();
-                mostrarResumen();
-            } else {
-                alert('Ingrese una cantidad válida.');
-            }
-        }
-
         function confirmarReiniciarInventario() {
             const contenido = `
                 <h3>Confirmar Reinicio</h3>
@@ -811,6 +844,40 @@
 
             doc.save('Ventas_Mary_Pedidos.pdf');
         }
+
+        // Agregar función para crear mariposas
+        function crearMariposas() {
+            const container = document.getElementById('mariposasContainer');
+            const numMariposas = 8; // Número de mariposas a crear
+
+            for (let i = 0; i < numMariposas; i++) {
+                const mariposa = document.createElement('div');
+                mariposa.className = 'mariposa';
+                
+                // Colores aleatorios en tonos rosa
+                const hue = Math.random() * 30 + 330; // Rango de 330-360 (tonos rosa)
+                const saturation = Math.random() * 20 + 80; // 80-100%
+                const lightness = Math.random() * 20 + 60; // 60-80%
+                
+                mariposa.style.filter = `hue-rotate(${hue}deg) saturate(${saturation}%) brightness(${lightness}%)`;
+                
+                // Posición inicial aleatoria
+                mariposa.style.left = `${Math.random() * 100}vw`;
+                mariposa.style.top = `${Math.random() * 100}vh`;
+                
+                container.appendChild(mariposa);
+            }
+        }
+
+        // Llamar a la función cuando se carga la página
+        window.addEventListener('load', crearMariposas);
+
+        // Recrear mariposas cada cierto tiempo
+        setInterval(() => {
+            const container = document.getElementById('mariposasContainer');
+            container.innerHTML = ''; // Limpiar mariposas existentes
+            crearMariposas(); // Crear nuevas mariposas
+        }, 25000); // Cada 25 segundos
     </script>
 </body>
 </html>
