@@ -285,16 +285,26 @@
         </div>
 
         <div id="cliente-form" style="display:none;">
-            <div class="color-option">
-                <input type="color" id="colorProducto" value="#FF69B4">
-                <input type="text" id="nombreColor" placeholder="Nombre del color (opcional)">
+            <div class="opciones-producto">
+                <div class="opcion-bloque">
+                    <div class="opcion-titulo">Color:</div>
+                    <div class="color-option">
+                        <input type="color" id="colorProducto" value="#FF69B4">
+                        <input type="text" id="nombreColor" placeholder="Nombre del color">
+                    </div>
+                </div>
+                
+                <div class="opcion-bloque">
+                    <div class="opcion-titulo">Cantidad:</div>
+                    <div class="cantidad-selector">
+                        <button type="button" onclick="decrementarCantidad()">-</button>
+                        <input type="number" id="cantidadProducto" value="1" min="1">
+                        <button type="button" onclick="incrementarCantidad()">+</button>
+                    </div>
+                </div>
             </div>
-            <div class="cantidad-selector">
-                <button type="button" onclick="decrementarCantidad()">-</button>
-                <input type="number" id="cantidadProducto" value="1" min="1">
-                <button type="button" onclick="incrementarCantidad()">+</button>
-            </div>
-            <input type="text" id="nombreClienta" placeholder="Nombre de la clienta: ">
+            
+            <input type="text" id="nombreClienta" placeholder="Nombre de la clienta">
             <button onclick="agregarCliente()">Agregar Clienta</button>
             <button onclick="finalizarProducto()">Finalizar Producto</button>
         </div>
@@ -493,7 +503,7 @@
                 
                 <div class="color-option">
                     <input type="color" id="editarColorProducto" value="${colorValue}">
-                    <input type="text" id="editarNombreColor" value="${nombreColor}" placeholder="Nombre del color (opcional)">
+                    <input type="text" id="editarNombreColor" value="${nombreColor}" placeholder="Nombre del color">
                 </div>
                 
                 <div class="cantidad-selector">
@@ -804,3 +814,107 @@
     </script>
 </body>
 </html>
+
+<style>
+    /* Estilos para los stickers */
+    .sticker {
+        position: absolute;
+        z-index: 1;
+        opacity: 0.8;
+    }
+    .sticker.pintauñas {
+        top: 10px;
+        left: 10px;
+        width: 60px;
+    }
+    .sticker.pintauñas-derecha {
+        bottom: 10px;
+        right: 10px;
+        width: 60px;
+    }
+
+    /* Estilos para el botón de WhatsApp */
+    button.enviar-whatsapp {
+        background-color: #25D366;
+        color: white;
+        border: none;
+        padding: 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+    }
+
+    button.enviar-whatsapp:hover {
+        background-color: #128C7E;
+    }
+    /* Estilos mejorados para los selectores de color y cantidad */
+    .opciones-producto {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .opcion-bloque {
+        flex: 1;
+        background-color: rgba(255, 255, 255, 0.7);
+        border-radius: 8px;
+        padding: 8px;
+        border: 1px solid #FFB6C1;
+    }
+    
+    .opcion-titulo {
+        font-size: 0.85rem;
+        margin-bottom: 5px;
+        color: #8B4513;
+        font-weight: 600;
+    }
+    
+    .color-option {
+        display: flex;
+        align-items: center;
+    }
+    
+    .color-option input[type="color"] {
+        width: 30px;
+        height: 30px;
+        border: none;
+        border-radius: 50%;
+        padding: 0;
+        margin-right: 5px;
+        cursor: pointer;
+    }
+    
+    .color-option input[type="text"] {
+        flex: 1;
+        height: 30px;
+        padding: 0 8px;
+    }
+    
+    .cantidad-selector {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .cantidad-selector button {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        font-size: 16px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 5px;
+        padding: 0;
+        background-color: #FF69B4;
+        color: white;
+    }
+    
+    .cantidad-selector input {
+        width: 50px;
+        text-align: center;
+        height: 30px;
+        padding: 0 5px;
+    }
+</style>
