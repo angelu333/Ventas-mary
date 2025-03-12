@@ -509,31 +509,52 @@
             document.getElementById('resumen').innerHTML = resumen;
         }
 
-        // Modificar la función buscarClienta para mostrar el color
+        function finalizarProducto() {
+            document.getElementById('producto-form').style.display = 'block';
+            document.getElementById('cliente-form').style.display = 'none';
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('precioProducto').value = '';
+            productoActual = {};
+            mostrarResumen();
+        }
+
+        function abrirModalBuscarClienta() {
+            const contenido = `
+                <h3>Buscar Clienta</h3>
+                <input type="text" id="buscarNombreClienta" placeholder="Nombre de la clienta">
+                <button onclick="buscarClienta()">Buscar</button>
+            `;
+            abrirModal(contenido);
+        }
+
         function buscarClienta() {
             const nombre = document.getElementById('buscarNombreClienta').value.trim();
-            if (pedidos[nombre]) {
+            const nombreFormateado = nombre.split(' ').map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join(' ');
+
+            if (pedidos[nombreFormateado]) {
                 let resultado = `<div class="clienta-pedido">
-                    <h3>Pedidos de ${nombre}:</h3>
-                    <button class="edit-button" onclick="editarNombreClienta('${nombre}')">Editar Nombre</button>
+                    <h3>Pedidos de ${nombreFormateado}:</h3>
+                    <button class="edit-button" onclick="editarNombreClientaEnPedido('${nombreFormateado}', 0)">Editar Nombre</button>
                     <ul>`;
                 let total = 0;
-                pedidos[nombre].forEach((pedido, index) => {
-                    let subtotal = pedido.precio * pedido.cantidad;
+
+                pedidos[nombreFormateado].forEach((pedido, index) => {
+                    const subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
                     
-                    // Mostrar información del color si existe
-                    let colorInfo = pedido.color ? 
-                        `<span style="color: ${pedido.color.startsWith('#') ? pedido.color : '#000'}; 
-                               margin-right: 5px;">■</span> ${pedido.color} - ` : '';
+                    const colorInfo = pedido.color ? 
+                        `<span style="color: #000; margin-right: 5px;">■</span> ${pedido.color} - ` : '';
                     
                     resultado += `<li>${colorInfo}${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
-                        <button class="edit-button" onclick="editarPedido('${nombre}', ${index})">Editar</button></li>`;
+                        <button class="edit-button" onclick="editarPedido('${nombreFormateado}', ${index})">Editar</button></li>`;
                 });
+
                 resultado += `</ul><strong>Total: $${total}</strong>`;
 
-                if (clientasRegistradas[nombre]) {
-                    resultado += `<button class="enviar-whatsapp" onclick="enviarWhatsApp('${nombre}')">Enviar pedido por WhatsApp</button>`;
+                if (clientasRegistradas[nombreFormateado]) {
+                    resultado += `<button class="enviar-whatsapp" onclick="enviarWhatsApp('${nombreFormateado}')">Enviar pedido por WhatsApp</button>`;
                 } else {
                     resultado += `<p style="color: red;">No hay número registrado para esta clienta.</p>`;
                 }
@@ -545,152 +566,100 @@
             }
         }
 
-        // Modificar la función editarPedido para incluir el color
-        function editarPedido(clienta, index) {
-            const pedido = pedidos[clienta][index];
-            const colorValue = pedido.color && pedido.color.startsWith('#') ? 
-                pedido.color : '#FF69B4';
-            const nombreColor = pedido.color && !pedido.color.startsWith('#') ? 
-                pedido.color : '';
-                
+        function abrirModalRegistrarClienta() {
             const contenido = `
-                <h3>Editar Pedido</h3>
-                <p>${pedido.producto} - Precio: $${pedido.precio}</p>
-                
-                <div class="color-option">
-                    <input type="color" id="editarColorProducto" value="${colorValue}">
-                    <input type="text" id="editarNombreColor" value="${nombreColor}" placeholder="Nombre del color">
-                </div>
-                
-                <div class="cantidad-selector">
-                    <button type="button" onclick="document.getElementById('editarCantidad').stepDown()">-</button>
-                    <input type="number" id="editarCantidad" value="${pedido.cantidad}" min="1">
-                    <button type="button" onclick="document.getElementById('editarCantidad').stepUp()">+</button>
-                </div>
-                
-                <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
+                <h3>Registrar Clienta</h3>
+                <input type="text" id="registroNombreClienta" placeholder="Nombre de la clienta">
+                <input type="tel" id="registroTelefonoClienta" placeholder="Teléfono (10 dígitos)">
+                <button onclick="registrarClienta()">Registrar</button>
             `;
             abrirModal(contenido);
         }
 
-        function guardarEdicion(clienta, index) {
-            const nuevaCantidad = parseInt(document.getElementById('editarCantidad').value);
-            const nuevoColorHex = document.getElementById('editarColorProducto').value;
-            const nuevoNombreColor = document.getElementById('editarNombreColor').value.trim();
-            
-            if (nuevaCantidad > 0) {
-                pedidos[clienta][index].cantidad = nuevaCantidad;
-                
-                // Actualizar información del color
-                const infoColor = nuevoNombreColor ? nuevoNombreColor : nuevoColorHex;
-                pedidos[clienta][index].color = infoColor;
-                
-                database.ref('pedidos').set(pedidos);
-                cerrarModal();
-                mostrarResumen();
-            } else {
-                alert('Ingrese una cantidad válida.');
-            }
-        }
+        function registrarClienta() {
+            const nombre = document.getElementById('registroNombreClienta').value.trim();
+            const telefono = document.getElementById('registroTelefonoClienta').value.trim();
 
-        // Modificar la función enviarWhatsApp para incluir el color
-        function enviarWhatsApp(clienta) {
-            const telefono = clientasRegistradas[clienta];
-            if (telefono) {
-                let numeroLimpio = telefono.replace(/\D/g, '');
-                
-                if (!numeroLimpio.startsWith('52')) {
-                    numeroLimpio = '52' + numeroLimpio;
+            if (nombre && telefono) {
+                const nombreFormateado = nombre.split(' ').map(word => 
+                    word.charAt(0).toUpperCase() + word.slice(1)
+                ).join(' ');
+
+                const telefonoLimpio = telefono.replace(/\D/g, '');
+                if (telefonoLimpio.length !== 10) {
+                    alert('El número de teléfono debe tener 10 dígitos.');
+                    return;
                 }
-                
-                if (numeroLimpio.length === 12) {
-                    let mensaje = `Hola ${clienta}, aquí está el resumen de tu pedido:\n\n`;
-                    let total = 0;
 
-                    pedidos[clienta].forEach((pedido) => {
-                        const subtotal = pedido.precio * pedido.cantidad;
-                        total += subtotal;
-                        
-                        // Incluir información del color si existe
-                        const colorInfo = pedido.color ? `(Color: ${pedido.color}) ` : '';
-                        
-                        mensaje += `- ${pedido.producto} ${colorInfo}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
-                    });
-
-                    mensaje += `\nTotal a pagar: $${total}\n¡Gracias por tu compra!`;
-                    const url = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
-                    window.open(url, '_blank');
-                } else {
-                    alert('El número de teléfono no tiene el formato correcto. Debe tener 10 dígitos.');
-                }
-            } else {
-                alert('No hay número registrado para esta clienta.');
-            }
-        }
-
-        function confirmarReiniciarInventario() {
-            const contenido = `
-                <h3>Confirmar Reinicio</h3>
-                <p>¿Está segura de que desea reiniciar TODO el inventario? Esta acción no se puede deshacer.</p>
-                <button onclick="reiniciarInventario()">Sí, reiniciar</button>
-            `;
-            abrirModal(contenido);
-        }
-
-        function reiniciarInventario() {
-            if (confirm('¿Estás segura de que deseas reiniciar TODO el inventario? Esta acción no se puede deshacer.')) {
-                pedidos = {};
-                database.ref('pedidos').set({});
+                clientasRegistradas[nombreFormateado] = telefonoLimpio;
+                database.ref('clientasRegistradas').set(clientasRegistradas);
                 cerrarModal();
-                mostrarResumen();
-                alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
+                alert('Clienta registrada correctamente.');
+            } else {
+                alert('Por favor, complete todos los campos.');
             }
         }
 
         function verProductosYClientas() {
             let productosMap = new Map();
             
+            // Crear mapa de productos y sus clientas
             for (let clienta in pedidos) {
                 pedidos[clienta].forEach(pedido => {
-                    if (!productosMap.has(pedido.producto)) {
-                        productosMap.set(pedido.producto, {
+                    const key = `${pedido.producto}_${pedido.precio}`;
+                    if (!productosMap.has(key)) {
+                        productosMap.set(key, {
+                            nombre: pedido.producto,
                             precio: pedido.precio,
-                            clientas: new Map()
+                            clientas: []
                         });
                     }
-                    if (!productosMap.get(pedido.producto).clientas.has(clienta)) {
-                        productosMap.get(pedido.producto).clientas.set(clienta, []);
+                    if (!productosMap.get(key).clientas.includes(clienta)) {
+                        productosMap.get(key).clientas.push(clienta);
                     }
-                    productosMap.get(pedido.producto).clientas.get(clienta).push(pedidos[clienta].indexOf(pedido));
                 });
             }
 
             let contenido = '<h3>Productos y Clientas</h3>';
-            productosMap.forEach((info, producto) => {
-                contenido += `
-                    <div class="clienta-pedido">
-                        <h4>${producto} - $${info.precio}</h4>
-                        <p><strong>Ordenado por:</strong></p>
-                        <button onclick="agregarClientaAProducto('${producto}', ${info.precio})" class="edit-button">Agregar Clienta</button>
-                        <ul>
-                `;
-                
-                info.clientas.forEach((indices, clienta) => {
-                    indices.forEach(index => {
-                        const pedido = pedidos[clienta][index];
-                        contenido += `
-                            <li>
-                                ${clienta} (${pedido.cantidad} unidades)
-                                <button class="edit-button" onclick="editarNombreClientaEnPedido('${clienta}', ${index})">Corregir Nombre</button>
-                                <button class="edit-button" onclick="eliminarPedidoDeClienta('${clienta}', ${index})">Eliminar</button>
-                            </li>
-                        `;
+            
+            if (productosMap.size === 0) {
+                contenido += '<p>No hay productos registrados.</p>';
+            } else {
+                productosMap.forEach((info, key) => {
+                    contenido += `
+                        <div class="clienta-pedido">
+                            <h4>${info.nombre} - $${info.precio}</h4>
+                            <button onclick="agregarClientaAProducto('${info.nombre}', ${info.precio})" class="edit-button">
+                                Agregar Clienta
+                            </button>
+                            <p><strong>Clientas que han ordenado:</strong></p>
+                            <ul>
+                    `;
+                    
+                    info.clientas.forEach(clienta => {
+                        const pedidosClienta = pedidos[clienta].filter(p => 
+                            p.producto === info.nombre && p.precio === info.precio
+                        );
+                        
+                        pedidosClienta.forEach((pedido, index) => {
+                            contenido += `
+                                <li>
+                                    ${clienta} (${pedido.cantidad} unidades)
+                                    <button class="edit-button" onclick="editarNombreClientaEnPedido('${clienta}', ${index})">
+                                        Editar Nombre
+                                    </button>
+                                    <button class="edit-button" onclick="eliminarPedidoDeClienta('${clienta}', ${index})">
+                                        Eliminar
+                                    </button>
+                                </li>
+                            `;
+                        });
                     });
+                    
+                    contenido += '</ul></div>';
                 });
-                
-                contenido += '</ul></div>';
-            });
-
+            }
+            
             abrirModal(contenido);
         }
 
@@ -698,7 +667,11 @@
             const contenido = `
                 <h3>Agregar Clienta a ${producto}</h3>
                 <input type="text" id="nombreClientaNueva" placeholder="Nombre de la clienta">
-                <input type="number" id="cantidadProducto" placeholder="Cantidad" min="1" value="1">
+                <div class="cantidad-selector">
+                    <button type="button" onclick="document.getElementById('cantidadProductoNuevo').stepDown()">-</button>
+                    <input type="number" id="cantidadProductoNuevo" value="1" min="1">
+                    <button type="button" onclick="document.getElementById('cantidadProductoNuevo').stepUp()">+</button>
+                </div>
                 <button onclick="guardarNuevaClientaEnProducto('${producto}', ${precio})">Agregar</button>
             `;
             abrirModal(contenido);
@@ -706,7 +679,7 @@
 
         function guardarNuevaClientaEnProducto(producto, precio) {
             const nombre = document.getElementById('nombreClientaNueva').value.trim();
-            const cantidad = parseInt(document.getElementById('cantidadProducto').value);
+            const cantidad = parseInt(document.getElementById('cantidadProductoNuevo').value);
 
             if (nombre && cantidad > 0) {
                 const nombreFormateado = nombre.split(' ').map(word => 
@@ -843,6 +816,25 @@
             }
 
             doc.save('Ventas_Mary_Pedidos.pdf');
+        }
+
+        function confirmarReiniciarInventario() {
+            const contenido = `
+                <h3>Confirmar Reinicio</h3>
+                <p>¿Está segura de que desea reiniciar TODO el inventario? Esta acción no se puede deshacer.</p>
+                <button onclick="reiniciarInventario()">Sí, reiniciar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function reiniciarInventario() {
+            if (confirm('¿Estás segura de que deseas reiniciar TODO el inventario? Esta acción no se puede deshacer.')) {
+                pedidos = {};
+                database.ref('pedidos').set({});
+                cerrarModal();
+                mostrarResumen();
+                alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
+            }
         }
 
         // Agregar función para crear mariposas
