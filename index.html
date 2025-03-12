@@ -285,6 +285,15 @@
         </div>
 
         <div id="cliente-form" style="display:none;">
+            <div class="color-option">
+                <input type="color" id="colorProducto" value="#FF69B4">
+                <input type="text" id="nombreColor" placeholder="Nombre del color (opcional)">
+            </div>
+            <div class="cantidad-selector">
+                <button type="button" onclick="decrementarCantidad()">-</button>
+                <input type="number" id="cantidadProducto" value="1" min="1">
+                <button type="button" onclick="incrementarCantidad()">+</button>
+            </div>
             <input type="text" id="nombreClienta" placeholder="Nombre de la clienta: ">
             <button onclick="agregarCliente()">Agregar Clienta</button>
             <button onclick="finalizarProducto()">Finalizar Producto</button>
@@ -357,26 +366,39 @@
                 productoActual = { nombre: nombre, precio: precio };
                 document.getElementById('producto-form').style.display = 'none';
                 document.getElementById('cliente-form').style.display = 'block';
+                // Resetear valores del formulario de cliente
+                document.getElementById('colorProducto').value = '#FF69B4';
+                document.getElementById('nombreColor').value = '';
+                document.getElementById('cantidadProducto').value = '1';
             } else {
                 alert('Por favor, ingrese un nombre y precio válido para el producto.');
+            }
+        }
+
+        function incrementarCantidad() {
+            const cantidadInput = document.getElementById('cantidadProducto');
+            cantidadInput.value = parseInt(cantidadInput.value) + 1;
+        }
+
+        function decrementarCantidad() {
+            const cantidadInput = document.getElementById('cantidadProducto');
+            const valorActual = parseInt(cantidadInput.value);
+            if (valorActual > 1) {
+                cantidadInput.value = valorActual - 1;
             }
         }
 
         function agregarCliente() {
             const entrada = document.getElementById('nombreClienta').value.trim();
             if (entrada) {
-                let partes = entrada.split(' ');
-                let cantidad = 1;
-                let nombreClienta;
-
-                if (!isNaN(partes[partes.length - 1])) {
-                    cantidad = parseInt(partes.pop());
-                    nombreClienta = partes.join(' ');
-                } else {
-                    nombreClienta = entrada;
-                }
-
+                let nombreClienta = entrada;
                 nombreClienta = nombreClienta.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                const cantidad = parseInt(document.getElementById('cantidadProducto').value);
+                const colorHex = document.getElementById('colorProducto').value;
+                const nombreColor = document.getElementById('nombreColor').value.trim();
+                
+                const infoColor = nombreColor ? nombreColor : colorHex;
 
                 if (!pedidos[nombreClienta]) {
                     pedidos[nombreClienta] = [];
@@ -385,24 +407,21 @@
                 pedidos[nombreClienta].push({
                     producto: productoActual.nombre,
                     precio: productoActual.precio,
-                    cantidad: cantidad
+                    cantidad: cantidad,
+                    color: infoColor
                 });
 
                 document.getElementById('nombreClienta').value = '';
-                // Guardar en Firebase en lugar de localStorage
+                // Resetear cantidad a 1 para la siguiente clienta
+                document.getElementById('cantidadProducto').value = '1';
+                // Guardar en Firebase
                 database.ref('pedidos').set(pedidos);
             } else {
-                alert('Ingrese el nombre completo de la clienta y la cantidad.');
+                alert('Ingrese el nombre completo de la clienta.');
             }
         }
 
-        function finalizarProducto() {
-            document.getElementById('nombreProducto').value = '';
-            document.getElementById('precioProducto').value = '';
-            document.getElementById('producto-form').style.display = 'block';
-            document.getElementById('cliente-form').style.display = 'none';
-        }
-
+        // Modificar la función mostrarResumen para incluir el color
         function mostrarResumen() {
             let resumen = '<h3>Resumen de Pedidos:</h3>';
             for (let clienta in pedidos) {
@@ -411,119 +430,20 @@
                 pedidos[clienta].forEach((pedido) => {
                     let subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
-                    resumen += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}</li>`;
+                    
+                    // Mostrar información del color si existe
+                    let colorInfo = pedido.color ? 
+                        `<span style="color: ${pedido.color.startsWith('#') ? pedido.color : '#000'}; 
+                               margin-right: 5px;">■</span> ${pedido.color} - ` : '';
+                    
+                    resumen += `<li>${colorInfo}${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}</li>`;
                 });
                 resumen += `</ul><strong>Total: $${total}</strong></div>`;
             }
             document.getElementById('resumen').innerHTML = resumen;
         }
 
-        function abrirModalRegistrarClienta() {
-            const contenido = `
-                <h3>Registrar Clienta</h3>
-                <input type="text" id="nombreClientaRegistro" placeholder="Nombre de la clienta">
-                <input type="text" id="telefonoClientaRegistro" placeholder="Número de teléfono">
-                <button onclick="registrarClienta()">Registrar</button>
-            `;
-            abrirModal(contenido);
-        }
-
-        function registrarClienta() {
-            const nombre = document.getElementById('nombreClientaRegistro').value.trim();
-            let telefono = document.getElementById('telefonoClientaRegistro').value.trim();
-
-            if (nombre && telefono) {
-                telefono = telefono.replace(/\D/g, '');
-                
-                if (telefono.length === 10) {
-                    clientasRegistradas[nombre] = telefono;
-                    // Guardar en Firebase
-                    database.ref('clientasRegistradas').set(clientasRegistradas);
-                    cerrarModal();
-                    alert('Clienta registrada correctamente.');
-                } else {
-                    alert('Por favor, ingrese un número de teléfono válido de 10 dígitos.');
-                }
-            } else {
-                alert('Por favor, ingrese el nombre y el número de teléfono de la clienta.');
-            }
-        }
-
-        function abrirModalVerClientas() {
-            let contenido = '<h3>Clientas Registradas</h3>';
-            if (Object.keys(clientasRegistradas).length > 0) {
-                contenido += '<ul>';
-                for (let nombre in clientasRegistradas) {
-                    contenido += `
-                        <li>
-                            <strong>${nombre}</strong>: ${clientasRegistradas[nombre]}
-                            <button class="edit-button" onclick="abrirModalEditarClienta('${nombre}')">Editar</button>
-                            <button class="edit-button" onclick="eliminarClienta('${nombre}')">Eliminar</button>
-                        </li>
-                    `;
-                }
-                contenido += '</ul>';
-            } else {
-                contenido += '<p>No hay clientas registradas.</p>';
-            }
-            abrirModal(contenido);
-        }
-
-        function abrirModalEditarClienta(nombre) {
-            const contenido = `
-                <h3>Editar Clienta</h3>
-                <input type="text" id="nombreClientaEditar" value="${nombre}" placeholder="Nombre de la clienta">
-                <input type="text" id="telefonoClientaEditar" value="${clientasRegistradas[nombre]}" placeholder="Nuevo número de teléfono">
-                <button onclick="editarClienta('${nombre}')">Guardar Cambios</button>
-            `;
-            abrirModal(contenido);
-        }
-
-        function editarClienta(nombreAnterior) {
-            const nombre = document.getElementById('nombreClientaEditar').value.trim();
-            let telefono = document.getElementById('telefonoClientaEditar').value.trim();
-
-            if (nombre && telefono) {
-                telefono = telefono.replace(/\D/g, '');
-                
-                if (telefono.length === 10) {
-                    if (clientasRegistradas[nombreAnterior]) {
-                        delete clientasRegistradas[nombreAnterior];
-                        clientasRegistradas[nombre] = telefono;
-                        // Actualizar Firebase
-                        database.ref('clientasRegistradas').set(clientasRegistradas);
-                        cerrarModal();
-                        alert('Datos de la clienta actualizados correctamente.');
-                    } else {
-                        alert('No se encontró una clienta con ese nombre.');
-                    }
-                } else {
-                    alert('Por favor, ingrese un número de teléfono válido de 10 dígitos.');
-                }
-            } else {
-                alert('Por favor, ingrese el nombre y el nuevo número de teléfono de la clienta.');
-            }
-        }
-
-        function eliminarClienta(nombre) {
-            if (confirm(`¿Estás segura de que deseas eliminar a ${nombre} del registro?`)) {
-                delete clientasRegistradas[nombre];
-                // Actualizar Firebase
-                database.ref('clientasRegistradas').set(clientasRegistradas);
-                abrirModalVerClientas();
-                alert('Clienta eliminada correctamente.');
-            }
-        }
-
-        function abrirModalBuscarClienta() {
-            const contenido = `
-                <h3>Buscar Clienta</h3>
-                <input type="text" id="buscarNombreClienta" placeholder="Nombre de la clienta">
-                <button onclick="buscarClienta()">Buscar</button>
-            `;
-            abrirModal(contenido);
-        }
-
+        // Modificar la función buscarClienta para mostrar el color
         function buscarClienta() {
             const nombre = document.getElementById('buscarNombreClienta').value.trim();
             if (pedidos[nombre]) {
@@ -535,7 +455,13 @@
                 pedidos[nombre].forEach((pedido, index) => {
                     let subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
-                    resultado += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
+                    
+                    // Mostrar información del color si existe
+                    let colorInfo = pedido.color ? 
+                        `<span style="color: ${pedido.color.startsWith('#') ? pedido.color : '#000'}; 
+                               margin-right: 5px;">■</span> ${pedido.color} - ` : '';
+                    
+                    resultado += `<li>${colorInfo}${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
                         <button class="edit-button" onclick="editarPedido('${nombre}', ${index})">Editar</button></li>`;
                 });
                 resultado += `</ul><strong>Total: $${total}</strong>`;
@@ -553,43 +479,55 @@
             }
         }
 
-        function editarNombreClienta(nombreAntiguo) {
+        // Modificar la función editarPedido para incluir el color
+        function editarPedido(clienta, index) {
+            const pedido = pedidos[clienta][index];
+            const colorValue = pedido.color && pedido.color.startsWith('#') ? 
+                pedido.color : '#FF69B4';
+            const nombreColor = pedido.color && !pedido.color.startsWith('#') ? 
+                pedido.color : '';
+                
             const contenido = `
-                <h3>Editar Nombre de Clienta</h3>
-                <input type="text" id="nuevoNombreClienta" value="${nombreAntiguo}" placeholder="Nuevo nombre de la clienta">
-                <button onclick="guardarNuevoNombre('${nombreAntiguo}')">Guardar Nuevo Nombre</button>
+                <h3>Editar Pedido</h3>
+                <p>${pedido.producto} - Precio: $${pedido.precio}</p>
+                
+                <div class="color-option">
+                    <input type="color" id="editarColorProducto" value="${colorValue}">
+                    <input type="text" id="editarNombreColor" value="${nombreColor}" placeholder="Nombre del color (opcional)">
+                </div>
+                
+                <div class="cantidad-selector">
+                    <button type="button" onclick="document.getElementById('editarCantidad').stepDown()">-</button>
+                    <input type="number" id="editarCantidad" value="${pedido.cantidad}" min="1">
+                    <button type="button" onclick="document.getElementById('editarCantidad').stepUp()">+</button>
+                </div>
+                
+                <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
             `;
             abrirModal(contenido);
         }
 
-        function guardarNuevoNombre(nombreAntiguo) {
-            const nuevoNombre = document.getElementById('nuevoNombreClienta').value.trim();
+        function guardarEdicion(clienta, index) {
+            const nuevaCantidad = parseInt(document.getElementById('editarCantidad').value);
+            const nuevoColorHex = document.getElementById('editarColorProducto').value;
+            const nuevoNombreColor = document.getElementById('editarNombreColor').value.trim();
             
-            if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
-                const nombreFormateado = nuevoNombre.split(' ').map(word => 
-                    word.charAt(0).toUpperCase() + word.slice(1)
-                ).join(' ');
-
-                if (pedidos[nombreFormateado]) {
-                    pedidos[nombreFormateado] = pedidos[nombreFormateado].concat(pedidos[nombreAntiguo]);
-                    delete pedidos[nombreAntiguo];
-                } else {
-                    pedidos[nombreFormateado] = pedidos[nombreAntiguo];
-                    delete pedidos[nombreAntiguo];
-                }
+            if (nuevaCantidad > 0) {
+                pedidos[clienta][index].cantidad = nuevaCantidad;
+                
+                // Actualizar información del color
+                const infoColor = nuevoNombreColor ? nuevoNombreColor : nuevoColorHex;
+                pedidos[clienta][index].color = infoColor;
                 
                 database.ref('pedidos').set(pedidos);
-                
                 cerrarModal();
-                alert('Nombre de la clienta actualizado correctamente.');
                 mostrarResumen();
-            } else if (nuevoNombre === nombreAntiguo) {
-                alert('El nuevo nombre es igual al anterior.');
             } else {
-                alert('Por favor, ingrese un nombre válido.');
+                alert('Ingrese una cantidad válida.');
             }
         }
 
+        // Modificar la función enviarWhatsApp para incluir el color
         function enviarWhatsApp(clienta) {
             const telefono = clientasRegistradas[clienta];
             if (telefono) {
@@ -606,7 +544,11 @@
                     pedidos[clienta].forEach((pedido) => {
                         const subtotal = pedido.precio * pedido.cantidad;
                         total += subtotal;
-                        mensaje += `- ${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
+                        
+                        // Incluir información del color si existe
+                        const colorInfo = pedido.color ? `(Color: ${pedido.color}) ` : '';
+                        
+                        mensaje += `- ${pedido.producto} ${colorInfo}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
                     });
 
                     mensaje += `\nTotal a pagar: $${total}\n¡Gracias por tu compra!`;
