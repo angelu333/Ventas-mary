@@ -8,9 +8,14 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     
-    <!-- Mantener los otros scripts -->
+    <!-- Scripts necesarios -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.29/jspdf.plugin.autotable.min.js"></script>
+    <!-- Agregar Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Agregar Moment.js para manejo de fechas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/es.js"></script>
 
     <style>
         /* Fuentes personalizadas */
@@ -19,7 +24,7 @@
         body { 
             font-family: 'Poppins', sans-serif; 
             padding: 20px; 
-            background-color: #FFF0F5;
+            background-color: #FFF0F5; 
             margin: 0; 
             color: #333;
             background-image: url('https://www.transparenttextures.com/patterns/soft-circle-scales.png');
@@ -246,64 +251,99 @@
             background-color: #128C7E;
         }
 
-        /* Estilos para las mariposas */
-        .mariposa {
-            position: fixed;
-            pointer-events: none;
-            width: 20px;
-            height: 20px;
-            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FF69B4"><path d="M12 2L8 6l4 4-4 4 4 4-4 4 4 4 4-4-4-4 4-4-4-4 4-4z"/></svg>');
-            background-size: contain;
-            background-repeat: no-repeat;
-            z-index: 1;
-            opacity: 0.7;
-            animation: volarMariposa 15s linear infinite;
+        /* Estilos para las estadísticas */
+        .estadisticas-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        @keyframes volarMariposa {
-            0% {
-                transform: translate(0, 100vh) rotate(0deg) scale(1);
-            }
-            25% {
-                transform: translate(25vw, 75vh) rotate(45deg) scale(1.2);
-            }
-            50% {
-                transform: translate(50vw, 50vh) rotate(0deg) scale(1);
-            }
-            75% {
-                transform: translate(75vw, 25vh) rotate(-45deg) scale(1.2);
-            }
-            100% {
-                transform: translate(100vw, 0) rotate(0deg) scale(1);
-            }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
         }
 
-        /* Diferentes tamaños y velocidades para las mariposas */
-        .mariposa:nth-child(2n) {
-            animation-duration: 17s;
-            animation-delay: 2s;
+        .stat-card {
+            background: linear-gradient(135deg, #FFE4E1, #FFB6C1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
         }
 
-        .mariposa:nth-child(3n) {
-            animation-duration: 20s;
-            animation-delay: 4s;
+        .stat-card:hover {
+            transform: translateY(-5px);
         }
 
-        .mariposa:nth-child(4n) {
-            animation-duration: 22s;
-            animation-delay: 6s;
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #8B4513;
+            margin: 10px 0;
         }
 
-        .mariposa:nth-child(5n) {
-            animation-duration: 25s;
-            animation-delay: 8s;
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .chart-container {
+            position: relative;
+            margin: 20px 0;
+            height: 300px;
+        }
+
+        .chart-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+        }
+
+        .chart-selector button {
+            background: #FF69B4;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .chart-selector button.active {
+            background: #FF1493;
+        }
+
+        .date-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .date-selector button {
+            background: none;
+            border: 2px solid #FF69B4;
+            color: #FF69B4;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .date-selector button:hover {
+            background: #FF69B4;
+            color: white;
         }
     </style>
 </head>
 <body>
-    <!-- Agregar contenedor para las mariposas -->
-    <div id="mariposasContainer"></div>
-
     <!-- Stickers decorativos -->
     <img src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png" alt="Pintauñas" class="sticker pintauñas">
     <img src="https://cdn-icons-png.flaticon.com/512/3081/3081559.png" alt="Pintauñas" class="sticker pintauñas-derecha">
@@ -315,6 +355,7 @@
         <ul>
             <li><button onclick="irAInicio()">Inicio</button></li>
             <li><button onclick="mostrarResumen()">Ver Totales</button></li>
+            <li><button onclick="abrirModalEstadisticas()">Estadísticas de Ventas</button></li>
             <li><button onclick="abrirModalBuscarClienta()">Buscar Clienta</button></li>
             <li><button onclick="abrirModalRegistrarClienta()">Registrar Clienta</button></li>
             <li><button onclick="abrirModalVerClientas()">Ver Clientas Registradas</button></li>
@@ -341,26 +382,7 @@
         </div>
 
         <div id="cliente-form" style="display:none;">
-            <div class="opciones-producto">
-                <div class="opcion-bloque">
-                    <div class="opcion-titulo">Color:</div>
-                    <div class="color-option">
-                        <input type="color" id="colorProducto" value="#FF69B4">
-                        <input type="text" id="nombreColor" placeholder="Nombre del color">
-                    </div>
-                </div>
-                
-                <div class="opcion-bloque">
-                    <div class="opcion-titulo">Cantidad:</div>
-                    <div class="cantidad-selector">
-                        <button type="button" onclick="decrementarCantidad()">-</button>
-                        <input type="number" id="cantidadProducto" value="1" min="1">
-                        <button type="button" onclick="incrementarCantidad()">+</button>
-                    </div>
-                </div>
-            </div>
-            
-            <input type="text" id="nombreClienta" placeholder="Nombre de la clienta">
+            <input type="text" id="nombreClienta" placeholder="Nombre de la clienta: ">
             <button onclick="agregarCliente()">Agregar Clienta</button>
             <button onclick="finalizarProducto()">Finalizar Producto</button>
         </div>
@@ -389,6 +411,8 @@
         let pedidos = {};
         let clientasRegistradas = {};
         let productoActual = {};
+        let estadisticasSemanales = {};
+        let graficosEstadisticas = {};
 
         // Cargar datos iniciales
         function cargarDatos() {
@@ -399,6 +423,10 @@
 
             database.ref('clientasRegistradas').on('value', (snapshot) => {
                 clientasRegistradas = snapshot.val() || {};
+            });
+
+            database.ref('estadisticasSemanales').on('value', (snapshot) => {
+                estadisticasSemanales = snapshot.val() || {};
             });
         }
 
@@ -432,39 +460,26 @@
                 productoActual = { nombre: nombre, precio: precio };
                 document.getElementById('producto-form').style.display = 'none';
                 document.getElementById('cliente-form').style.display = 'block';
-                // Resetear valores del formulario de cliente
-                document.getElementById('colorProducto').value = '#FF69B4';
-                document.getElementById('nombreColor').value = '';
-                document.getElementById('cantidadProducto').value = '1';
             } else {
                 alert('Por favor, ingrese un nombre y precio válido para el producto.');
-            }
-        }
-
-        function incrementarCantidad() {
-            const cantidadInput = document.getElementById('cantidadProducto');
-            cantidadInput.value = parseInt(cantidadInput.value) + 1;
-        }
-
-        function decrementarCantidad() {
-            const cantidadInput = document.getElementById('cantidadProducto');
-            const valorActual = parseInt(cantidadInput.value);
-            if (valorActual > 1) {
-                cantidadInput.value = valorActual - 1;
             }
         }
 
         function agregarCliente() {
             const entrada = document.getElementById('nombreClienta').value.trim();
             if (entrada) {
-                let nombreClienta = entrada;
-                nombreClienta = nombreClienta.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                let partes = entrada.split(' ');
+                let cantidad = 1;
+                let nombreClienta;
 
-                const cantidad = parseInt(document.getElementById('cantidadProducto').value);
-                const colorHex = document.getElementById('colorProducto').value;
-                const nombreColor = document.getElementById('nombreColor').value.trim();
-                
-                const infoColor = nombreColor ? nombreColor : colorHex;
+                if (!isNaN(partes[partes.length - 1])) {
+                    cantidad = parseInt(partes.pop());
+                    nombreClienta = partes.join(' ');
+                } else {
+                    nombreClienta = entrada;
+                }
+
+                nombreClienta = nombreClienta.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
 
                 if (!pedidos[nombreClienta]) {
                     pedidos[nombreClienta] = [];
@@ -473,21 +488,24 @@
                 pedidos[nombreClienta].push({
                     producto: productoActual.nombre,
                     precio: productoActual.precio,
-                    cantidad: cantidad,
-                    color: infoColor
+                    cantidad: cantidad
                 });
 
                 document.getElementById('nombreClienta').value = '';
-                // Resetear cantidad a 1 para la siguiente clienta
-                document.getElementById('cantidadProducto').value = '1';
-                // Guardar en Firebase
+                // Guardar en Firebase en lugar de localStorage
                 database.ref('pedidos').set(pedidos);
             } else {
-                alert('Ingrese el nombre completo de la clienta.');
+                alert('Ingrese el nombre completo de la clienta y la cantidad.');
             }
         }
 
-        // Modificar la función mostrarResumen para incluir el color
+        function finalizarProducto() {
+            document.getElementById('nombreProducto').value = '';
+            document.getElementById('precioProducto').value = '';
+            document.getElementById('producto-form').style.display = 'block';
+            document.getElementById('cliente-form').style.display = 'none';
+        }
+
         function mostrarResumen() {
             let resumen = '<h3>Resumen de Pedidos:</h3>';
             for (let clienta in pedidos) {
@@ -496,26 +514,108 @@
                 pedidos[clienta].forEach((pedido) => {
                     let subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
-                    
-                    // Mostrar información del color si existe
-                    let colorInfo = pedido.color ? 
-                        `<span style="color: ${pedido.color.startsWith('#') ? pedido.color : '#000'}; 
-                               margin-right: 5px;">■</span> ${pedido.color} - ` : '';
-                    
-                    resumen += `<li>${colorInfo}${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}</li>`;
+                    resumen += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}</li>`;
                 });
                 resumen += `</ul><strong>Total: $${total}</strong></div>`;
             }
             document.getElementById('resumen').innerHTML = resumen;
         }
 
-        function finalizarProducto() {
-            document.getElementById('producto-form').style.display = 'block';
-            document.getElementById('cliente-form').style.display = 'none';
-            document.getElementById('nombreProducto').value = '';
-            document.getElementById('precioProducto').value = '';
-            productoActual = {};
-            mostrarResumen();
+        function abrirModalRegistrarClienta() {
+            const contenido = `
+                <h3>Registrar Clienta</h3>
+                <input type="text" id="nombreClientaRegistro" placeholder="Nombre de la clienta">
+                <input type="text" id="telefonoClientaRegistro" placeholder="Número de teléfono">
+                <button onclick="registrarClienta()">Registrar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function registrarClienta() {
+            const nombre = document.getElementById('nombreClientaRegistro').value.trim();
+            let telefono = document.getElementById('telefonoClientaRegistro').value.trim();
+
+            if (nombre && telefono) {
+                telefono = telefono.replace(/\D/g, '');
+                
+                if (telefono.length === 10) {
+                    clientasRegistradas[nombre] = telefono;
+                    // Guardar en Firebase
+                    database.ref('clientasRegistradas').set(clientasRegistradas);
+                    cerrarModal();
+                    alert('Clienta registrada correctamente.');
+                } else {
+                    alert('Por favor, ingrese un número de teléfono válido de 10 dígitos.');
+                }
+            } else {
+                alert('Por favor, ingrese el nombre y el número de teléfono de la clienta.');
+            }
+        }
+
+        function abrirModalVerClientas() {
+            let contenido = '<h3>Clientas Registradas</h3>';
+            if (Object.keys(clientasRegistradas).length > 0) {
+                contenido += '<ul>';
+                for (let nombre in clientasRegistradas) {
+                    contenido += `
+                        <li>
+                            <strong>${nombre}</strong>: ${clientasRegistradas[nombre]}
+                            <button class="edit-button" onclick="abrirModalEditarClienta('${nombre}')">Editar</button>
+                            <button class="edit-button" onclick="eliminarClienta('${nombre}')">Eliminar</button>
+                        </li>
+                    `;
+                }
+                contenido += '</ul>';
+            } else {
+                contenido += '<p>No hay clientas registradas.</p>';
+            }
+            abrirModal(contenido);
+        }
+
+        function abrirModalEditarClienta(nombre) {
+            const contenido = `
+                <h3>Editar Clienta</h3>
+                <input type="text" id="nombreClientaEditar" value="${nombre}" placeholder="Nombre de la clienta">
+                <input type="text" id="telefonoClientaEditar" value="${clientasRegistradas[nombre]}" placeholder="Nuevo número de teléfono">
+                <button onclick="editarClienta('${nombre}')">Guardar Cambios</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function editarClienta(nombreAnterior) {
+            const nombre = document.getElementById('nombreClientaEditar').value.trim();
+            let telefono = document.getElementById('telefonoClientaEditar').value.trim();
+
+            if (nombre && telefono) {
+                telefono = telefono.replace(/\D/g, '');
+                
+                if (telefono.length === 10) {
+                    if (clientasRegistradas[nombreAnterior]) {
+                        delete clientasRegistradas[nombreAnterior];
+                        clientasRegistradas[nombre] = telefono;
+                        // Actualizar Firebase
+                        database.ref('clientasRegistradas').set(clientasRegistradas);
+                        cerrarModal();
+                        alert('Datos de la clienta actualizados correctamente.');
+                    } else {
+                        alert('No se encontró una clienta con ese nombre.');
+                    }
+                } else {
+                    alert('Por favor, ingrese un número de teléfono válido de 10 dígitos.');
+                }
+            } else {
+                alert('Por favor, ingrese el nombre y el nuevo número de teléfono de la clienta.');
+            }
+        }
+
+        function eliminarClienta(nombre) {
+            if (confirm(`¿Estás segura de que deseas eliminar a ${nombre} del registro?`)) {
+                delete clientasRegistradas[nombre];
+                // Actualizar Firebase
+                database.ref('clientasRegistradas').set(clientasRegistradas);
+                abrirModalVerClientas();
+                alert('Clienta eliminada correctamente.');
+            }
         }
 
         function abrirModalBuscarClienta() {
@@ -529,32 +629,22 @@
 
         function buscarClienta() {
             const nombre = document.getElementById('buscarNombreClienta').value.trim();
-            const nombreFormateado = nombre.split(' ').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1)
-            ).join(' ');
-
-            if (pedidos[nombreFormateado]) {
+            if (pedidos[nombre]) {
                 let resultado = `<div class="clienta-pedido">
-                    <h3>Pedidos de ${nombreFormateado}:</h3>
-                    <button class="edit-button" onclick="editarNombreClientaEnPedido('${nombreFormateado}', 0)">Editar Nombre</button>
+                    <h3>Pedidos de ${nombre}:</h3>
+                    <button class="edit-button" onclick="editarNombreClienta('${nombre}')">Editar Nombre</button>
                     <ul>`;
                 let total = 0;
-
-                pedidos[nombreFormateado].forEach((pedido, index) => {
-                    const subtotal = pedido.precio * pedido.cantidad;
+                pedidos[nombre].forEach((pedido, index) => {
+                    let subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
-                    
-                    const colorInfo = pedido.color ? 
-                        `<span style="color: #000; margin-right: 5px;">■</span> ${pedido.color} - ` : '';
-                    
-                    resultado += `<li>${colorInfo}${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
-                        <button class="edit-button" onclick="editarPedido('${nombreFormateado}', ${index})">Editar</button></li>`;
+                    resultado += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
+                        <button class="edit-button" onclick="editarPedido('${nombre}', ${index})">Editar</button></li>`;
                 });
-
                 resultado += `</ul><strong>Total: $${total}</strong>`;
 
-                if (clientasRegistradas[nombreFormateado]) {
-                    resultado += `<button class="enviar-whatsapp" onclick="enviarWhatsApp('${nombreFormateado}')">Enviar pedido por WhatsApp</button>`;
+                if (clientasRegistradas[nombre]) {
+                    resultado += `<button class="enviar-whatsapp" onclick="enviarWhatsApp('${nombre}')">Enviar pedido por WhatsApp</button>`;
                 } else {
                     resultado += `<p style="color: red;">No hay número registrado para esta clienta.</p>`;
                 }
@@ -566,100 +656,159 @@
             }
         }
 
-        function abrirModalRegistrarClienta() {
+        function editarNombreClienta(nombreAntiguo) {
             const contenido = `
-                <h3>Registrar Clienta</h3>
-                <input type="text" id="registroNombreClienta" placeholder="Nombre de la clienta">
-                <input type="tel" id="registroTelefonoClienta" placeholder="Teléfono (10 dígitos)">
-                <button onclick="registrarClienta()">Registrar</button>
+                <h3>Editar Nombre de Clienta</h3>
+                <input type="text" id="nuevoNombreClienta" value="${nombreAntiguo}" placeholder="Nuevo nombre de la clienta">
+                <button onclick="guardarNuevoNombre('${nombreAntiguo}')">Guardar Nuevo Nombre</button>
             `;
             abrirModal(contenido);
         }
 
-        function registrarClienta() {
-            const nombre = document.getElementById('registroNombreClienta').value.trim();
-            const telefono = document.getElementById('registroTelefonoClienta').value.trim();
-
-            if (nombre && telefono) {
-                const nombreFormateado = nombre.split(' ').map(word => 
+        function guardarNuevoNombre(nombreAntiguo) {
+            const nuevoNombre = document.getElementById('nuevoNombreClienta').value.trim();
+            
+            if (nuevoNombre && nuevoNombre !== nombreAntiguo) {
+                const nombreFormateado = nuevoNombre.split(' ').map(word => 
                     word.charAt(0).toUpperCase() + word.slice(1)
                 ).join(' ');
 
-                const telefonoLimpio = telefono.replace(/\D/g, '');
-                if (telefonoLimpio.length !== 10) {
-                    alert('El número de teléfono debe tener 10 dígitos.');
-                    return;
+                if (pedidos[nombreFormateado]) {
+                    pedidos[nombreFormateado] = pedidos[nombreFormateado].concat(pedidos[nombreAntiguo]);
+                    delete pedidos[nombreAntiguo];
+                } else {
+                    pedidos[nombreFormateado] = pedidos[nombreAntiguo];
+                    delete pedidos[nombreAntiguo];
                 }
-
-                clientasRegistradas[nombreFormateado] = telefonoLimpio;
-                database.ref('clientasRegistradas').set(clientasRegistradas);
+                
+                database.ref('pedidos').set(pedidos);
+                
                 cerrarModal();
-                alert('Clienta registrada correctamente.');
+                alert('Nombre de la clienta actualizado correctamente.');
+                mostrarResumen();
+            } else if (nuevoNombre === nombreAntiguo) {
+                alert('El nuevo nombre es igual al anterior.');
             } else {
-                alert('Por favor, complete todos los campos.');
+                alert('Por favor, ingrese un nombre válido.');
+            }
+        }
+
+        function enviarWhatsApp(clienta) {
+            const telefono = clientasRegistradas[clienta];
+            if (telefono) {
+                let numeroLimpio = telefono.replace(/\D/g, '');
+                
+                if (!numeroLimpio.startsWith('52')) {
+                    numeroLimpio = '52' + numeroLimpio;
+                }
+                
+                if (numeroLimpio.length === 12) {
+                    let mensaje = `Hola ${clienta}, aquí está el resumen de tu pedido:\n\n`;
+                    let total = 0;
+
+                    pedidos[clienta].forEach((pedido) => {
+                        const subtotal = pedido.precio * pedido.cantidad;
+                        total += subtotal;
+                        mensaje += `- ${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
+                    });
+
+                    mensaje += `\nTotal a pagar: $${total}\n¡Gracias por tu compra!`;
+                    const url = `https://wa.me/${numeroLimpio}?text=${encodeURIComponent(mensaje)}`;
+                    window.open(url, '_blank');
+                } else {
+                    alert('El número de teléfono no tiene el formato correcto. Debe tener 10 dígitos.');
+                }
+            } else {
+                alert('No hay número registrado para esta clienta.');
+            }
+        }
+
+        function editarPedido(clienta, index) {
+            const pedido = pedidos[clienta][index];
+            const contenido = `
+                <h3>Editar Cantidad</h3>
+                <p>${pedido.producto} - Precio: $${pedido.precio}</p>
+                <input type="number" id="nuevaCantidad" value="${pedido.cantidad}" min="1">
+                <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function guardarEdicion(clienta, index) {
+            const nuevaCantidad = parseInt(document.getElementById('nuevaCantidad').value);
+            if (nuevaCantidad > 0) {
+                pedidos[clienta][index].cantidad = nuevaCantidad;
+                database.ref('pedidos').set(pedidos);
+                cerrarModal();
+                mostrarResumen();
+            } else {
+                alert('Ingrese una cantidad válida.');
+            }
+        }
+
+        function confirmarReiniciarInventario() {
+            const contenido = `
+                <h3>Confirmar Reinicio</h3>
+                <p>¿Está segura de que desea reiniciar TODO el inventario? Esta acción no se puede deshacer.</p>
+                <button onclick="reiniciarInventario()">Sí, reiniciar</button>
+            `;
+            abrirModal(contenido);
+        }
+
+        function reiniciarInventario() {
+            if (confirm('¿Estás segura de que deseas reiniciar TODO el inventario? Esta acción no se puede deshacer.')) {
+                pedidos = {};
+                database.ref('pedidos').set({});
+                cerrarModal();
+                mostrarResumen();
+                alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
             }
         }
 
         function verProductosYClientas() {
             let productosMap = new Map();
             
-            // Crear mapa de productos y sus clientas
             for (let clienta in pedidos) {
                 pedidos[clienta].forEach(pedido => {
-                    const key = `${pedido.producto}_${pedido.precio}`;
-                    if (!productosMap.has(key)) {
-                        productosMap.set(key, {
-                            nombre: pedido.producto,
+                    if (!productosMap.has(pedido.producto)) {
+                        productosMap.set(pedido.producto, {
                             precio: pedido.precio,
-                            clientas: []
+                            clientas: new Map()
                         });
                     }
-                    if (!productosMap.get(key).clientas.includes(clienta)) {
-                        productosMap.get(key).clientas.push(clienta);
+                    if (!productosMap.get(pedido.producto).clientas.has(clienta)) {
+                        productosMap.get(pedido.producto).clientas.set(clienta, []);
                     }
+                    productosMap.get(pedido.producto).clientas.get(clienta).push(pedidos[clienta].indexOf(pedido));
                 });
             }
 
             let contenido = '<h3>Productos y Clientas</h3>';
-            
-            if (productosMap.size === 0) {
-                contenido += '<p>No hay productos registrados.</p>';
-            } else {
-                productosMap.forEach((info, key) => {
-                    contenido += `
-                        <div class="clienta-pedido">
-                            <h4>${info.nombre} - $${info.precio}</h4>
-                            <button onclick="agregarClientaAProducto('${info.nombre}', ${info.precio})" class="edit-button">
-                                Agregar Clienta
-                            </button>
-                            <p><strong>Clientas que han ordenado:</strong></p>
-                            <ul>
-                    `;
-                    
-                    info.clientas.forEach(clienta => {
-                        const pedidosClienta = pedidos[clienta].filter(p => 
-                            p.producto === info.nombre && p.precio === info.precio
-                        );
-                        
-                        pedidosClienta.forEach((pedido, index) => {
-                            contenido += `
-                                <li>
-                                    ${clienta} (${pedido.cantidad} unidades)
-                                    <button class="edit-button" onclick="editarNombreClientaEnPedido('${clienta}', ${index})">
-                                        Editar Nombre
-                                    </button>
-                                    <button class="edit-button" onclick="eliminarPedidoDeClienta('${clienta}', ${index})">
-                                        Eliminar
-                                    </button>
-                                </li>
-                            `;
-                        });
+            productosMap.forEach((info, producto) => {
+                contenido += `
+                    <div class="clienta-pedido">
+                        <h4>${producto} - $${info.precio}</h4>
+                        <p><strong>Ordenado por:</strong></p>
+                        <button onclick="agregarClientaAProducto('${producto}', ${info.precio})" class="edit-button">Agregar Clienta</button>
+                        <ul>
+                `;
+                
+                info.clientas.forEach((indices, clienta) => {
+                    indices.forEach(index => {
+                        const pedido = pedidos[clienta][index];
+                        contenido += `
+                            <li>
+                                ${clienta} (${pedido.cantidad} unidades)
+                                <button class="edit-button" onclick="editarNombreClientaEnPedido('${clienta}', ${index})">Corregir Nombre</button>
+                                <button class="edit-button" onclick="eliminarPedidoDeClienta('${clienta}', ${index})">Eliminar</button>
+                            </li>
+                        `;
                     });
-                    
-                    contenido += '</ul></div>';
                 });
-            }
-            
+                
+                contenido += '</ul></div>';
+            });
+
             abrirModal(contenido);
         }
 
@@ -667,11 +816,7 @@
             const contenido = `
                 <h3>Agregar Clienta a ${producto}</h3>
                 <input type="text" id="nombreClientaNueva" placeholder="Nombre de la clienta">
-                <div class="cantidad-selector">
-                    <button type="button" onclick="document.getElementById('cantidadProductoNuevo').stepDown()">-</button>
-                    <input type="number" id="cantidadProductoNuevo" value="1" min="1">
-                    <button type="button" onclick="document.getElementById('cantidadProductoNuevo').stepUp()">+</button>
-                </div>
+                <input type="number" id="cantidadProducto" placeholder="Cantidad" min="1" value="1">
                 <button onclick="guardarNuevaClientaEnProducto('${producto}', ${precio})">Agregar</button>
             `;
             abrirModal(contenido);
@@ -679,7 +824,7 @@
 
         function guardarNuevaClientaEnProducto(producto, precio) {
             const nombre = document.getElementById('nombreClientaNueva').value.trim();
-            const cantidad = parseInt(document.getElementById('cantidadProductoNuevo').value);
+            const cantidad = parseInt(document.getElementById('cantidadProducto').value);
 
             if (nombre && cantidad > 0) {
                 const nombreFormateado = nombre.split(' ').map(word => 
@@ -769,211 +914,359 @@
                 format: 'a4'
             });
 
+            // Configuración de la página
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 5;
+            const columnWidth = (pageWidth - (margin * 5)) / 4; // Dividir en 4 columnas
+            const lineHeight = 4;
+
+            // Título del documento
             doc.setFont("helvetica");
-            doc.setFontSize(16);
-            doc.text("Resumen de Pedidos - Ventas Mary", 15, 15);
+            doc.setFontSize(14);
+            doc.text("Resumen de Pedidos - Ventas Mary", margin, margin + 4);
 
-            let yPos = 25;
-            const margen = 15;
-            const lineHeight = 5;
+            let currentColumn = 0;
+            let xPos = margin;
+            let yPos = margin + 12;
+            const startY = yPos;
 
-            const anchoDisponible = doc.internal.pageSize.getWidth() - (margen * 2);
-
-            for (let clienta in pedidos) {
-                if (yPos > 190) {
-                    doc.addPage('', 'landscape');
-                    yPos = 15;
+            const clientas = Object.keys(pedidos);
+            clientas.forEach((clienta, index) => {
+                // Verificar si necesitamos cambiar de columna o página
+                if (yPos > pageHeight - margin * 2) {
+                    currentColumn++;
+                    if (currentColumn >= 4) {
+                        // Nueva página
+                        doc.addPage();
+                        currentColumn = 0;
+                        xPos = margin;
+                        yPos = startY;
+                    } else {
+                        // Siguiente columna
+                        xPos = margin + (columnWidth + margin) * currentColumn;
+                        yPos = startY;
+                    }
                 }
 
-                doc.setFontSize(12);
+                // Nombre de la clienta
+                doc.setFontSize(10);
                 doc.setFont("helvetica", "bold");
-                doc.text(clienta, margen, yPos);
-                doc.setFont("helvetica", "normal");
+                doc.text(clienta, xPos, yPos);
                 yPos += lineHeight;
 
+                // Detalles de pedidos
+                doc.setFontSize(8);
+                doc.setFont("helvetica", "normal");
                 let total = 0;
-                doc.setFontSize(10);
 
                 pedidos[clienta].forEach(pedido => {
                     const subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
                     
-                    if (yPos > 190) {
-                        doc.addPage('', 'landscape');
-                        yPos = 15;
-                    }
-
-                    const textoProducto = `${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}`;
-                    doc.text(textoProducto, margen + 5, yPos);
-                    yPos += lineHeight;
+                    // Agregar información del color si existe
+                    const colorInfo = pedido.color ? `(${pedido.color}) ` : '';
+                    const textoProducto = `${pedido.producto} ${colorInfo}- ${pedido.cantidad} x $${pedido.precio} = $${subtotal}`;
+                    
+                    // Dividir el texto si es muy largo
+                    const splitText = doc.splitTextToSize(textoProducto, columnWidth - 2);
+                    splitText.forEach(line => {
+                        doc.text(line, xPos + 2, yPos);
+                        yPos += lineHeight;
+                    });
                 });
 
-                doc.setFontSize(11);
+                // Total
                 doc.setFont("helvetica", "bold");
-                doc.text(`Total: $${total}`, margen + 5, yPos);
-                doc.setFont("helvetica", "normal");
+                doc.text(`Total: $${total}`, xPos + 2, yPos);
                 yPos += lineHeight * 1.5;
-            }
+            });
 
             doc.save('Ventas_Mary_Pedidos.pdf');
         }
 
-        function confirmarReiniciarInventario() {
+        function abrirModalEstadisticas() {
             const contenido = `
-                <h3>Confirmar Reinicio</h3>
-                <p>¿Está segura de que desea reiniciar TODO el inventario? Esta acción no se puede deshacer.</p>
-                <button onclick="reiniciarInventario()">Sí, reiniciar</button>
+                <div class="estadisticas-container">
+                    <h3>Estadísticas de Ventas</h3>
+                    
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Ventas Totales</div>
+                            <div class="stat-value" id="ventasTotales">$0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Productos Vendidos</div>
+                            <div class="stat-value" id="productosVendidos">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Clientas Activas</div>
+                            <div class="stat-value" id="clientasActivas">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Producto Más Vendido</div>
+                            <div class="stat-value" id="productoMasVendido">-</div>
+                        </div>
+                    </div>
+
+                    <div class="date-selector">
+                        <button onclick="cambiarPeriodo('anterior')">&lt; Anterior</button>
+                        <span id="periodoActual">Semana Actual</span>
+                        <button onclick="cambiarPeriodo('siguiente')">Siguiente &gt;</button>
+                    </div>
+
+                    <div class="chart-selector">
+                        <button onclick="cambiarGrafico('ventas')" class="active">Ventas</button>
+                        <button onclick="cambiarGrafico('productos')">Productos</button>
+                        <button onclick="cambiarGrafico('clientas')">Clientas</button>
+                    </div>
+
+                    <div class="chart-container">
+                        <canvas id="estadisticasChart"></canvas>
+                    </div>
+                </div>
             `;
             abrirModal(contenido);
+            inicializarEstadisticas();
         }
 
-        function reiniciarInventario() {
-            if (confirm('¿Estás segura de que deseas reiniciar TODO el inventario? Esta acción no se puede deshacer.')) {
-                pedidos = {};
-                database.ref('pedidos').set({});
-                cerrarModal();
-                mostrarResumen();
-                alert('Inventario reiniciado correctamente. Las clientas registradas se mantienen.');
+        function inicializarEstadisticas() {
+            // Configurar fecha actual
+            moment.locale('es');
+            const fechaActual = moment();
+            document.getElementById('periodoActual').textContent = `Semana del ${fechaActual.startOf('week').format('D MMM')} al ${fechaActual.endOf('week').format('D MMM')}`;
+
+            // Calcular estadísticas
+            const stats = calcularEstadisticasActuales();
+            
+            // Actualizar valores en las tarjetas
+            document.getElementById('ventasTotales').textContent = `$${stats.ventasTotales}`;
+            document.getElementById('productosVendidos').textContent = stats.totalProductos;
+            document.getElementById('clientasActivas').textContent = stats.clientasActivas;
+            document.getElementById('productoMasVendido').textContent = stats.productoMasVendido;
+
+            // Inicializar gráfico
+            crearGraficoVentas();
+        }
+
+        function calcularEstadisticasActuales() {
+            let ventasTotales = 0;
+            let totalProductos = 0;
+            let productosConteo = {};
+
+            // Calcular estadísticas
+            for (let clienta in pedidos) {
+                pedidos[clienta].forEach(pedido => {
+                    ventasTotales += pedido.precio * pedido.cantidad;
+                    totalProductos += pedido.cantidad;
+
+                    if (!productosConteo[pedido.producto]) {
+                        productosConteo[pedido.producto] = 0;
+                    }
+                    productosConteo[pedido.producto] += pedido.cantidad;
+                });
+            }
+
+            // Encontrar producto más vendido
+            let productoMasVendido = '-';
+            let maxCantidad = 0;
+            for (let producto in productosConteo) {
+                if (productosConteo[producto] > maxCantidad) {
+                    maxCantidad = productosConteo[producto];
+                    productoMasVendido = producto;
+                }
+            }
+
+            // Guardar estadísticas de la semana
+            const semanaActual = moment().format('YYYY-[W]ww');
+            if (!estadisticasSemanales[semanaActual]) {
+                estadisticasSemanales[semanaActual] = {
+                    ventasTotales,
+                    totalProductos,
+                    clientasActivas: Object.keys(pedidos).length,
+                    productoMasVendido,
+                    productosVendidos: productosConteo,
+                    fecha: moment().format()
+                };
+                database.ref('estadisticasSemanales').set(estadisticasSemanales);
+            }
+
+            return {
+                ventasTotales,
+                totalProductos,
+                clientasActivas: Object.keys(pedidos).length,
+                productoMasVendido
+            };
+        }
+
+        function crearGraficoVentas() {
+            const ctx = document.getElementById('estadisticasChart').getContext('2d');
+            
+            // Destruir gráfico existente si hay uno
+            if (graficosEstadisticas.chart) {
+                graficosEstadisticas.chart.destroy();
+            }
+
+            // Preparar datos para el gráfico
+            const semanas = Object.keys(estadisticasSemanales).sort();
+            const datos = semanas.map(semana => estadisticasSemanales[semana].ventasTotales);
+            const labels = semanas.map(semana => {
+                const fecha = moment(estadisticasSemanales[semana].fecha);
+                return `Semana del ${fecha.startOf('week').format('D MMM')}`;
+            });
+
+            graficosEstadisticas.chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ventas Totales',
+                        data: datos,
+                        borderColor: '#FF69B4',
+                        backgroundColor: 'rgba(255, 105, 180, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Tendencia de Ventas por Semana'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function cambiarGrafico(tipo) {
+            // Actualizar botones
+            document.querySelectorAll('.chart-selector button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            const ctx = document.getElementById('estadisticasChart').getContext('2d');
+            if (graficosEstadisticas.chart) {
+                graficosEstadisticas.chart.destroy();
+            }
+
+            const semanaActual = moment().format('YYYY-[W]ww');
+            const datos = estadisticasSemanales[semanaActual];
+
+            let configuracion;
+            switch(tipo) {
+                case 'ventas':
+                    crearGraficoVentas();
+                    return;
+                case 'productos':
+                    const productosData = Object.entries(datos.productosVendidos)
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 5);
+                    
+                    configuracion = {
+                        type: 'bar',
+                        data: {
+                            labels: productosData.map(p => p[0]),
+                            datasets: [{
+                                label: 'Cantidad Vendida',
+                                data: productosData.map(p => p[1]),
+                                backgroundColor: '#FF69B4',
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Productos Más Vendidos'
+                                }
+                            }
+                        }
+                    };
+                    break;
+                case 'clientas':
+                    const clientasData = Object.keys(pedidos).length;
+                    configuracion = {
+                        type: 'doughnut',
+                        data: {
+                            labels: ['Clientas Activas', 'Meta'],
+                            datasets: [{
+                                data: [clientasData, Math.max(20, clientasData * 1.5)],
+                                backgroundColor: ['#FF69B4', '#FFE4E1']
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Clientas Activas vs Meta'
+                                }
+                            }
+                        }
+                    };
+                    break;
+            }
+
+            graficosEstadisticas.chart = new Chart(ctx, configuracion);
+        }
+
+        function cambiarPeriodo(direccion) {
+            const periodoActualElement = document.getElementById('periodoActual');
+            const fechaActual = moment(periodoActualElement.textContent, 'Semana del D MMM al D MMM');
+            
+            if (direccion === 'anterior') {
+                fechaActual.subtract(1, 'week');
+            } else {
+                fechaActual.add(1, 'week');
+            }
+
+            periodoActualElement.textContent = `Semana del ${fechaActual.startOf('week').format('D MMM')} al ${fechaActual.endOf('week').format('D MMM')}`;
+            
+            // Actualizar gráficos con los datos de la nueva semana
+            const semanaSeleccionada = fechaActual.format('YYYY-[W]ww');
+            if (estadisticasSemanales[semanaSeleccionada]) {
+                actualizarEstadisticasConPeriodo(semanaSeleccionada);
+            } else {
+                // Si no hay datos para esa semana, mostrar valores en cero
+                document.getElementById('ventasTotales').textContent = '$0';
+                document.getElementById('productosVendidos').textContent = '0';
+                document.getElementById('clientasActivas').textContent = '0';
+                document.getElementById('productoMasVendido').textContent = '-';
             }
         }
 
-        // Agregar función para crear mariposas
-        function crearMariposas() {
-            const container = document.getElementById('mariposasContainer');
-            const numMariposas = 8; // Número de mariposas a crear
-
-            for (let i = 0; i < numMariposas; i++) {
-                const mariposa = document.createElement('div');
-                mariposa.className = 'mariposa';
+        function actualizarEstadisticasConPeriodo(semana) {
+            const datos = estadisticasSemanales[semana];
+            if (datos) {
+                document.getElementById('ventasTotales').textContent = `$${datos.ventasTotales}`;
+                document.getElementById('productosVendidos').textContent = datos.totalProductos;
+                document.getElementById('clientasActivas').textContent = datos.clientasActivas;
+                document.getElementById('productoMasVendido').textContent = datos.productoMasVendido;
                 
-                // Colores aleatorios en tonos rosa
-                const hue = Math.random() * 30 + 330; // Rango de 330-360 (tonos rosa)
-                const saturation = Math.random() * 20 + 80; // 80-100%
-                const lightness = Math.random() * 20 + 60; // 60-80%
-                
-                mariposa.style.filter = `hue-rotate(${hue}deg) saturate(${saturation}%) brightness(${lightness}%)`;
-                
-                // Posición inicial aleatoria
-                mariposa.style.left = `${Math.random() * 100}vw`;
-                mariposa.style.top = `${Math.random() * 100}vh`;
-                
-                container.appendChild(mariposa);
+                // Actualizar el gráfico activo
+                const tipoActivo = document.querySelector('.chart-selector button.active').textContent.toLowerCase();
+                cambiarGrafico(tipoActivo);
             }
         }
-
-        // Llamar a la función cuando se carga la página
-        window.addEventListener('load', crearMariposas);
-
-        // Recrear mariposas cada cierto tiempo
-        setInterval(() => {
-            const container = document.getElementById('mariposasContainer');
-            container.innerHTML = ''; // Limpiar mariposas existentes
-            crearMariposas(); // Crear nuevas mariposas
-        }, 25000); // Cada 25 segundos
     </script>
 </body>
 </html>
-
-<style>
-    /* Estilos para los stickers */
-    .sticker {
-        position: absolute;
-        z-index: 1;
-        opacity: 0.8;
-    }
-    .sticker.pintauñas {
-        top: 10px;
-        left: 10px;
-        width: 60px;
-    }
-    .sticker.pintauñas-derecha {
-        bottom: 10px;
-        right: 10px;
-        width: 60px;
-    }
-
-    /* Estilos para el botón de WhatsApp */
-    button.enviar-whatsapp {
-        background-color: #25D366;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 5px;
-        cursor: pointer;
-        margin-top: 10px;
-    }
-
-    button.enviar-whatsapp:hover {
-        background-color: #128C7E;
-    }
-    /* Estilos mejorados para los selectores de color y cantidad */
-    .opciones-producto {
-        display: flex;
-        justify-content: space-between;
-        gap: 10px;
-        margin-bottom: 10px;
-    }
-    
-    .opcion-bloque {
-        flex: 1;
-        background-color: rgba(255, 255, 255, 0.7);
-        border-radius: 8px;
-        padding: 8px;
-        border: 1px solid #FFB6C1;
-    }
-    
-    .opcion-titulo {
-        font-size: 0.85rem;
-        margin-bottom: 5px;
-        color: #8B4513;
-        font-weight: 600;
-    }
-    
-    .color-option {
-        display: flex;
-        align-items: center;
-    }
-    
-    .color-option input[type="color"] {
-        width: 30px;
-        height: 30px;
-        border: none;
-        border-radius: 50%;
-        padding: 0;
-        margin-right: 5px;
-        cursor: pointer;
-    }
-    
-    .color-option input[type="text"] {
-        flex: 1;
-        height: 30px;
-        padding: 0 8px;
-    }
-    
-    .cantidad-selector {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .cantidad-selector button {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        font-size: 16px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin: 0 5px;
-        padding: 0;
-        background-color: #FF69B4;
-        color: white;
-    }
-    
-    .cantidad-selector input {
-        width: 50px;
-        text-align: center;
-        height: 30px;
-        padding: 0 5px;
-    }
-</style>
