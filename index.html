@@ -341,6 +341,35 @@
             background: #FF69B4;
             color: white;
         }
+
+        /* Estilos para los separadores */
+        .separator {
+            height: 1px;
+            background-color: #FFB6C1;
+            margin: 15px 0;
+            opacity: 0.5;
+        }
+
+        /* Estilos para los campos adicionales */
+        .additional-fields {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.5);
+            border: 1px dashed #FFB6C1;
+        }
+
+        .field-label {
+            font-size: 0.9rem;
+            color: #8B4513;
+            margin-bottom: 5px;
+        }
+
+        .stat-sublabel {
+            color: #8B4513;
+            font-size: 14px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -383,6 +412,14 @@
 
         <div id="cliente-form" style="display:none;">
             <input type="text" id="nombreClienta" placeholder="Nombre de la clienta: ">
+            
+            <!-- Nuevos campos para color y cantidad -->
+            <div class="additional-fields">
+                <div class="field-label">Detalles adicionales (opcionales):</div>
+                <input type="text" id="colorProducto" placeholder="Color del producto (opcional)">
+                <input type="number" id="cantidadProducto" placeholder="Cantidad" min="1" value="1">
+            </div>
+            
             <button onclick="agregarCliente()">Agregar Clienta</button>
             <button onclick="finalizarProducto()">Finalizar Producto</button>
         </div>
@@ -469,11 +506,16 @@
             const entrada = document.getElementById('nombreClienta').value.trim();
             if (entrada) {
                 let partes = entrada.split(' ');
-                let cantidad = 1;
+                let cantidad = parseInt(document.getElementById('cantidadProducto').value) || 1;
                 let nombreClienta;
 
+                // Si el último elemento es un número, usarlo como cantidad (compatibilidad con versión anterior)
                 if (!isNaN(partes[partes.length - 1])) {
-                    cantidad = parseInt(partes.pop());
+                    const cantidadTexto = parseInt(partes.pop());
+                    // Solo usar la cantidad del texto si no se especificó en el campo de cantidad
+                    if (cantidad === 1 && cantidadTexto > 1) {
+                        cantidad = cantidadTexto;
+                    }
                     nombreClienta = partes.join(' ');
                 } else {
                     nombreClienta = entrada;
@@ -485,17 +527,32 @@
                     pedidos[nombreClienta] = [];
                 }
 
-                pedidos[nombreClienta].push({
+                // Obtener el color (opcional)
+                const color = document.getElementById('colorProducto').value.trim();
+
+                // Crear el objeto de pedido con los nuevos campos
+                const nuevoPedido = {
                     producto: productoActual.nombre,
                     precio: productoActual.precio,
                     cantidad: cantidad
-                });
+                };
 
+                // Agregar el color solo si se especificó
+                if (color) {
+                    nuevoPedido.color = color;
+                }
+
+                pedidos[nombreClienta].push(nuevoPedido);
+
+                // Limpiar los campos
                 document.getElementById('nombreClienta').value = '';
-                // Guardar en Firebase en lugar de localStorage
+                document.getElementById('colorProducto').value = '';
+                document.getElementById('cantidadProducto').value = '1';
+                
+                // Guardar en Firebase
                 database.ref('pedidos').set(pedidos);
             } else {
-                alert('Ingrese el nombre completo de la clienta y la cantidad.');
+                alert('Ingrese el nombre completo de la clienta.');
             }
         }
 
@@ -514,7 +571,11 @@
                 pedidos[clienta].forEach((pedido) => {
                     let subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
-                    resumen += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}</li>`;
+                    
+                    // Mostrar el color si existe
+                    const colorInfo = pedido.color ? ` (${pedido.color})` : '';
+                    
+                    resumen += `<li>${pedido.producto}${colorInfo}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}</li>`;
                 });
                 resumen += `</ul><strong>Total: $${total}</strong></div>`;
             }
@@ -638,7 +699,11 @@
                 pedidos[nombre].forEach((pedido, index) => {
                     let subtotal = pedido.precio * pedido.cantidad;
                     total += subtotal;
-                    resultado += `<li>${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
+                    
+                    // Mostrar el color si existe
+                    const colorInfo = pedido.color ? ` (${pedido.color})` : '';
+                    
+                    resultado += `<li>${pedido.producto}${colorInfo}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}
                         <button class="edit-button" onclick="editarPedido('${nombre}', ${index})">Editar</button></li>`;
                 });
                 resultado += `</ul><strong>Total: $${total}</strong>`;
@@ -709,7 +774,11 @@
                     pedidos[clienta].forEach((pedido) => {
                         const subtotal = pedido.precio * pedido.cantidad;
                         total += subtotal;
-                        mensaje += `- ${pedido.producto}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
+                        
+                        // Incluir información del color en el mensaje si existe
+                        const colorInfo = pedido.color ? ` (${pedido.color})` : '';
+                        
+                        mensaje += `- ${pedido.producto}${colorInfo}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}\n`;
                     });
 
                     mensaje += `\nTotal a pagar: $${total}\n¡Gracias por tu compra!`;
@@ -726,9 +795,10 @@
         function editarPedido(clienta, index) {
             const pedido = pedidos[clienta][index];
             const contenido = `
-                <h3>Editar Cantidad</h3>
+                <h3>Editar Pedido</h3>
                 <p>${pedido.producto} - Precio: $${pedido.precio}</p>
                 <input type="number" id="nuevaCantidad" value="${pedido.cantidad}" min="1">
+                <input type="text" id="nuevoColor" value="${pedido.color || ''}" placeholder="Color (opcional)">
                 <button onclick="guardarEdicion('${clienta}', ${index})">Guardar</button>
             `;
             abrirModal(contenido);
@@ -736,8 +806,21 @@
 
         function guardarEdicion(clienta, index) {
             const nuevaCantidad = parseInt(document.getElementById('nuevaCantidad').value);
+            const nuevoColor = document.getElementById('nuevoColor').value.trim();
+            
             if (nuevaCantidad > 0) {
                 pedidos[clienta][index].cantidad = nuevaCantidad;
+                
+                // Actualizar el color solo si se proporcionó uno
+                if (nuevoColor) {
+                    pedidos[clienta][index].color = nuevoColor;
+                } else {
+                    // Si el campo está vacío y existía un color, eliminarlo
+                    if (pedidos[clienta][index].color) {
+                        delete pedidos[clienta][index].color;
+                    }
+                }
+                
                 database.ref('pedidos').set(pedidos);
                 cerrarModal();
                 mostrarResumen();
@@ -783,9 +866,30 @@
                 });
             }
 
-            let contenido = '<h3>Productos y Clientas</h3>';
+            let contenido = `
+                <h3>Productos y Clientas</h3>
+                <div style="margin-bottom: 15px;">
+                    <input type="text" id="buscarProducto" placeholder="Buscar producto..." style="margin-bottom: 10px;">
+                    <button onclick="buscarProductoEnLista()" class="edit-button">Buscar</button>
+                </div>
+                <div id="listaProductos">
+            `;
+            
+            // Guardar todos los productos en una variable global para la búsqueda
+            window.todosLosProductos = new Map(productosMap);
+            
+            // Mostrar todos los productos inicialmente
+            contenido += generarListaProductos(productosMap);
+            contenido += '</div>';
+
+            abrirModal(contenido);
+        }
+
+        // Función para generar la lista HTML de productos
+        function generarListaProductos(productosMap) {
+            let contenidoProductos = '';
             productosMap.forEach((info, producto) => {
-                contenido += `
+                contenidoProductos += `
                     <div class="clienta-pedido">
                         <h4>${producto} - $${info.precio}</h4>
                         <p><strong>Ordenado por:</strong></p>
@@ -796,9 +900,12 @@
                 info.clientas.forEach((indices, clienta) => {
                     indices.forEach(index => {
                         const pedido = pedidos[clienta][index];
-                        contenido += `
+                        // Mostrar el color si existe
+                        const colorInfo = pedido.color ? ` (${pedido.color})` : '';
+                        
+                        contenidoProductos += `
                             <li>
-                                ${clienta} (${pedido.cantidad} unidades)
+                                ${clienta}${colorInfo} (${pedido.cantidad} unidades)
                                 <button class="edit-button" onclick="editarNombreClientaEnPedido('${clienta}', ${index})">Corregir Nombre</button>
                                 <button class="edit-button" onclick="eliminarPedidoDeClienta('${clienta}', ${index})">Eliminar</button>
                             </li>
@@ -806,10 +913,36 @@
                     });
                 });
                 
-                contenido += '</ul></div>';
+                contenidoProductos += '</ul></div>';
             });
+            return contenidoProductos;
+        }
 
-            abrirModal(contenido);
+        // Función para buscar productos
+        function buscarProductoEnLista() {
+            const terminoBusqueda = document.getElementById('buscarProducto').value.trim().toLowerCase();
+            const productosMap = window.todosLosProductos;
+            
+            if (!terminoBusqueda) {
+                // Si no hay término de búsqueda, mostrar todos los productos
+                document.getElementById('listaProductos').innerHTML = generarListaProductos(productosMap);
+                return;
+            }
+            
+            // Filtrar productos que coincidan con la búsqueda
+            const productosFiltrados = new Map();
+            
+            productosMap.forEach((info, producto) => {
+                if (producto.toLowerCase().includes(terminoBusqueda)) {
+                    productosFiltrados.set(producto, info);
+                }
+            });
+            
+            // Actualizar la lista con los productos filtrados
+            document.getElementById('listaProductos').innerHTML = 
+                productosFiltrados.size > 0 
+                    ? generarListaProductos(productosFiltrados) 
+                    : '<p>No se encontraron productos que coincidan con la búsqueda.</p>';
         }
 
         function agregarClientaAProducto(producto, precio) {
@@ -817,6 +950,7 @@
                 <h3>Agregar Clienta a ${producto}</h3>
                 <input type="text" id="nombreClientaNueva" placeholder="Nombre de la clienta">
                 <input type="number" id="cantidadProducto" placeholder="Cantidad" min="1" value="1">
+                <input type="text" id="colorProducto" placeholder="Color (opcional)">
                 <button onclick="guardarNuevaClientaEnProducto('${producto}', ${precio})">Agregar</button>
             `;
             abrirModal(contenido);
@@ -825,6 +959,7 @@
         function guardarNuevaClientaEnProducto(producto, precio) {
             const nombre = document.getElementById('nombreClientaNueva').value.trim();
             const cantidad = parseInt(document.getElementById('cantidadProducto').value);
+            const color = document.getElementById('colorProducto').value.trim();
 
             if (nombre && cantidad > 0) {
                 const nombreFormateado = nombre.split(' ').map(word => 
@@ -835,11 +970,19 @@
                     pedidos[nombreFormateado] = [];
                 }
 
-                pedidos[nombreFormateado].push({
+                // Crear el objeto de pedido
+                const nuevoPedido = {
                     producto: producto,
                     precio: precio,
                     cantidad: cantidad
-                });
+                };
+
+                // Agregar el color solo si se especificó
+                if (color) {
+                    nuevoPedido.color = color;
+                }
+
+                pedidos[nombreFormateado].push(nuevoPedido);
 
                 database.ref('pedidos').set(pedidos);
                 cerrarModal();
@@ -985,6 +1128,75 @@
             doc.save('Ventas_Mary_Pedidos.pdf');
         }
 
+        function calcularEstadisticasActuales() {
+            let ventasTotales = 0;
+            let totalProductos = 0;
+            let productosConteo = {};
+            let clientasCompras = {};
+
+            // Calcular estadísticas
+            for (let clienta in pedidos) {
+                clientasCompras[clienta] = 0;
+                
+                pedidos[clienta].forEach(pedido => {
+                    const subtotal = pedido.precio * pedido.cantidad;
+                    ventasTotales += subtotal;
+                    totalProductos += pedido.cantidad;
+                    clientasCompras[clienta] += subtotal;
+
+                    if (!productosConteo[pedido.producto]) {
+                        productosConteo[pedido.producto] = 0;
+                    }
+                    productosConteo[pedido.producto] += pedido.cantidad;
+                });
+            }
+
+            // Encontrar producto más vendido
+            let productoMasVendido = '-';
+            let maxCantidad = 0;
+            for (let producto in productosConteo) {
+                if (productosConteo[producto] > maxCantidad) {
+                    maxCantidad = productosConteo[producto];
+                    productoMasVendido = producto;
+                }
+            }
+            
+            // Encontrar clienta que más compró
+            let clientaMasCompro = '-';
+            let maxCompra = 0;
+            for (let clienta in clientasCompras) {
+                if (clientasCompras[clienta] > maxCompra) {
+                    maxCompra = clientasCompras[clienta];
+                    clientaMasCompro = clienta;
+                }
+            }
+
+            // Guardar estadísticas de la semana
+            const semanaActual = moment().format('YYYY-[W]ww');
+            if (!estadisticasSemanales[semanaActual]) {
+                estadisticasSemanales[semanaActual] = {
+                    ventasTotales,
+                    totalProductos,
+                    clientasActivas: Object.keys(pedidos).length,
+                    productoMasVendido,
+                    clientaMasCompro,
+                    totalClientaMasCompro: maxCompra,
+                    productosVendidos: productosConteo,
+                    fecha: moment().format()
+                };
+                database.ref('estadisticasSemanales').set(estadisticasSemanales);
+            }
+
+            return {
+                ventasTotales,
+                totalProductos,
+                clientasActivas: Object.keys(pedidos).length,
+                productoMasVendido,
+                clientaMasCompro,
+                totalClientaMasCompro: maxCompra
+            };
+        }
+
         function abrirModalEstadisticas() {
             const contenido = `
                 <div class="estadisticas-container">
@@ -1006,6 +1218,11 @@
                         <div class="stat-card">
                             <div class="stat-label">Producto Más Vendido</div>
                             <div class="stat-value" id="productoMasVendido">-</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Clienta Que Más Compró</div>
+                            <div class="stat-value" id="clientaMasCompro">-</div>
+                            <div class="stat-sublabel" id="totalClientaMasCompro">$0</div>
                         </div>
                     </div>
 
@@ -1044,59 +1261,11 @@
             document.getElementById('productosVendidos').textContent = stats.totalProductos;
             document.getElementById('clientasActivas').textContent = stats.clientasActivas;
             document.getElementById('productoMasVendido').textContent = stats.productoMasVendido;
+            document.getElementById('clientaMasCompro').textContent = stats.clientaMasCompro;
+            document.getElementById('totalClientaMasCompro').textContent = `$${stats.totalClientaMasCompro}`;
 
             // Inicializar gráfico
             crearGraficoVentas();
-        }
-
-        function calcularEstadisticasActuales() {
-            let ventasTotales = 0;
-            let totalProductos = 0;
-            let productosConteo = {};
-
-            // Calcular estadísticas
-            for (let clienta in pedidos) {
-                pedidos[clienta].forEach(pedido => {
-                    ventasTotales += pedido.precio * pedido.cantidad;
-                    totalProductos += pedido.cantidad;
-
-                    if (!productosConteo[pedido.producto]) {
-                        productosConteo[pedido.producto] = 0;
-                    }
-                    productosConteo[pedido.producto] += pedido.cantidad;
-                });
-            }
-
-            // Encontrar producto más vendido
-            let productoMasVendido = '-';
-            let maxCantidad = 0;
-            for (let producto in productosConteo) {
-                if (productosConteo[producto] > maxCantidad) {
-                    maxCantidad = productosConteo[producto];
-                    productoMasVendido = producto;
-                }
-            }
-
-            // Guardar estadísticas de la semana
-            const semanaActual = moment().format('YYYY-[W]ww');
-            if (!estadisticasSemanales[semanaActual]) {
-                estadisticasSemanales[semanaActual] = {
-                    ventasTotales,
-                    totalProductos,
-                    clientasActivas: Object.keys(pedidos).length,
-                    productoMasVendido,
-                    productosVendidos: productosConteo,
-                    fecha: moment().format()
-                };
-                database.ref('estadisticasSemanales').set(estadisticasSemanales);
-            }
-
-            return {
-                ventasTotales,
-                totalProductos,
-                clientasActivas: Object.keys(pedidos).length,
-                productoMasVendido
-            };
         }
 
         function crearGraficoVentas() {
@@ -1251,6 +1420,8 @@
                 document.getElementById('productosVendidos').textContent = '0';
                 document.getElementById('clientasActivas').textContent = '0';
                 document.getElementById('productoMasVendido').textContent = '-';
+                document.getElementById('clientaMasCompro').textContent = '-';
+                document.getElementById('totalClientaMasCompro').textContent = '$0';
             }
         }
 
@@ -1261,6 +1432,15 @@
                 document.getElementById('productosVendidos').textContent = datos.totalProductos;
                 document.getElementById('clientasActivas').textContent = datos.clientasActivas;
                 document.getElementById('productoMasVendido').textContent = datos.productoMasVendido;
+                
+                // Actualizar información de la clienta que más compró
+                if (datos.clientaMasCompro) {
+                    document.getElementById('clientaMasCompro').textContent = datos.clientaMasCompro;
+                    document.getElementById('totalClientaMasCompro').textContent = `$${datos.totalClientaMasCompro}`;
+                } else {
+                    document.getElementById('clientaMasCompro').textContent = '-';
+                    document.getElementById('totalClientaMasCompro').textContent = '$0';
+                }
                 
                 // Actualizar el gráfico activo
                 const tipoActivo = document.querySelector('.chart-selector button.active').textContent.toLowerCase();
