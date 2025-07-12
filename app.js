@@ -1371,6 +1371,7 @@ function abrirModalEnviarWhatsApp() {
     let html = `<h3>Enviar Totales por WhatsApp</h3>`;
     const clientas = Object.keys(clientasRegistradas);
     let hayAlMenosUna = false;
+    const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
     if (clientas.length === 0) {
         html += '<p>No hay clientas registradas con número.</p>';
     } else {
@@ -1395,7 +1396,7 @@ function abrirModalEnviarWhatsApp() {
             html += `<li style="margin-bottom: 15px;">
                 <strong>${clienta}</strong> <span style="color:#888;">(${telefono})</span><br>
                 <span>Total: <b>$${total}</b></span><br>
-                <a href="${url}" target="_blank" style="display:inline-block; margin-top:5px; background:#25D366; color:white; padding:7px 15px; border-radius:5px; text-decoration:none; font-weight:bold;">Enviar WhatsApp</a>
+                <a href="${url}" target="${isMobile ? '_self' : '_blank'}" style="display:inline-block; margin-top:8px; background:#25D366; color:white; padding:14px 20px; border-radius:8px; text-decoration:none; font-weight:bold; font-size:1.1rem; width:100%; max-width:300px; text-align:center;">Enviar WhatsApp</a>
             </li>`;
         });
         html += '</ul>';
