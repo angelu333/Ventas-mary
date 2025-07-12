@@ -1366,3 +1366,42 @@ function procesarRegistroMasivo() {
         }
     }, 3000);
 } 
+
+function abrirModalEnviarWhatsApp() {
+    let html = `<h3>Enviar Totales por WhatsApp</h3>`;
+    const clientas = Object.keys(clientasRegistradas);
+    let hayAlMenosUna = false;
+    if (clientas.length === 0) {
+        html += '<p>No hay clientas registradas con número.</p>';
+    } else {
+        html += '<ul style="list-style:none; padding:0;">';
+        clientas.forEach(clienta => {
+            const telefono = clientasRegistradas[clienta];
+            const pedidosClienta = pedidos[clienta] || [];
+            if (!telefono || pedidosClienta.length === 0) return;
+            hayAlMenosUna = true;
+            let total = 0;
+            let productosTexto = '';
+            pedidosClienta.forEach(pedido => {
+                const subtotal = pedido.precio * pedido.cantidad;
+                total += subtotal;
+                const colorInfo = pedido.color ? ` (${pedido.color})` : '';
+                productosTexto += `- ${pedido.cantidad}x ${pedido.producto}${colorInfo} ($${pedido.precio} c/u) = $${subtotal}\n`;
+            });
+            const mensaje = encodeURIComponent(
+                `¡Hola ${clienta}! Soy de Ventas Mary.\n\nEstos son tus productos de la semana:\n${productosTexto}\nTotal: $${total}\n\n¡Gracias por tu compra y tu preferencia! 🤍🤲🏻`
+            );
+            const url = `https://wa.me/52${telefono}?text=${mensaje}`;
+            html += `<li style="margin-bottom: 15px;">
+                <strong>${clienta}</strong> <span style="color:#888;">(${telefono})</span><br>
+                <span>Total: <b>$${total}</b></span><br>
+                <a href="${url}" target="_blank" style="display:inline-block; margin-top:5px; background:#25D366; color:white; padding:7px 15px; border-radius:5px; text-decoration:none; font-weight:bold;">Enviar WhatsApp</a>
+            </li>`;
+        });
+        html += '</ul>';
+    }
+    if (!hayAlMenosUna) {
+        html += '<p>No hay clientas con pedidos y número registrados.</p>';
+    }
+    abrirModal(html);
+} 
