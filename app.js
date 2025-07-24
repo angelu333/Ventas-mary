@@ -1078,37 +1078,62 @@ function borrarClienteDeProducto(producto, nombreCliente) {
 // Función para generar PDF
 function generarPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
+    // Crear el PDF en orientación horizontal (landscape)
+    const doc = new jsPDF({ orientation: 'landscape' });
+
     doc.setFontSize(20);
     doc.text('Ventas Mary - Reporte de Pedidos', 20, 20);
-    
-    let y = 40;
-    for (let clienta in pedidos) {
-        doc.setFontSize(14);
-        doc.text(`Cliente: ${clienta}`, 20, y);
-        y += 10;
-        
+
+    // Configuración de columnas
+    const columnas = 4;
+    const margenIzq = 20;
+    const margenSup = 30;
+    const anchoCol = 70;
+    const altoMax = 190;
+    let col = 0;
+    let y = margenSup;
+    let x = margenIzq;
+
+    const clientas = Object.keys(pedidos);
+    for (let i = 0; i < clientas.length; i++) {
+        const clienta = clientas[i];
+        // Calcular el espacio necesario para la clienta y sus productos
+        let espacioNecesario = 7 + (pedidos[clienta].length * 5.5) + 10;
+        // Si no cabe en la columna actual, pasar a la siguiente columna o página
+        if (y + espacioNecesario > margenSup + altoMax) {
+            col++;
+            if (col >= columnas) {
+                doc.addPage();
+                col = 0;
+            }
+            x = margenIzq + col * anchoCol;
+            y = margenSup;
+        }
+        // Resaltar el nombre de la clienta con fondo amarillo (marcatexto)
+        doc.setFillColor(255, 255, 102); // Amarillo claro
+        doc.rect(x - 2, y - 5, anchoCol - 4, 8, 'F');
+        doc.setFontSize(12);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Cliente: ${clienta}`, x, y);
+        y += 7;
+
         let total = 0;
         pedidos[clienta].forEach(pedido => {
             const subtotal = pedido.precio * pedido.cantidad;
             total += subtotal;
             const colorInfo = pedido.color ? ` (${pedido.color})` : '';
-            doc.setFontSize(10);
-            doc.text(`  ${pedido.producto}${colorInfo}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}`, 20, y);
-            y += 7;
+            doc.setFontSize(9);
+            doc.setTextColor(50, 50, 50);
+            doc.text(`- ${pedido.producto}${colorInfo}: ${pedido.cantidad} x $${pedido.precio} = $${subtotal}`, x, y);
+            y += 5.5;
         });
-        
-        doc.setFontSize(12);
-        doc.text(`Total: $${total}`, 20, y);
-        y += 15;
-        
-        if (y > 250) {
-            doc.addPage();
-            y = 20;
-        }
+
+        doc.setFontSize(10);
+        doc.setTextColor(80, 80, 80);
+        doc.text(`Total: $${total}`, x, y);
+        y += 10;
     }
-    
+
     doc.save('ventas-mary-reporte.pdf');
 }
 
